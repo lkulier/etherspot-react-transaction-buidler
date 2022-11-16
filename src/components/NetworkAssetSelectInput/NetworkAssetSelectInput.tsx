@@ -384,7 +384,10 @@ const NetworkAssetSelectInput = ({
               {selectedNetworkAssets?.length > 5 && (
                 <SearchInputWrapper htmlFor={searchInputId}>
                   <AiOutlineSearch size={18} color={theme?.color?.text?.searchInput} />
-                  <SearchInput id={searchInputId} onChange={(e: any) => setAssetSearchQuery(e?.target?.value)} placeholder="Search" />
+                  <SearchInput id={searchInputId} onChange={(e: any) => {
+                    e.stopPropagation();
+                    setAssetSearchQuery(e?.target?.value)}
+                    } placeholder="Search" />
                 </SearchInputWrapper>
               )}
               <OptionsScroll>
