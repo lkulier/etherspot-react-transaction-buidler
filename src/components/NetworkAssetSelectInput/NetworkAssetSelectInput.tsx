@@ -387,7 +387,14 @@ const NetworkAssetSelectInput = ({
                   <SearchInput id={searchInputId} onChange={(e: any) => {
                     e.stopPropagation();
                     setAssetSearchQuery(e?.target?.value)}
-                    } placeholder="Search" />
+                    } placeholder="Search"
+                    onClick={(e: any) =>{
+                      e.stopPropagation();
+                    }}
+                    onFocus={(e: any) => {
+                      e.stopPropagation();
+                    }}
+                    />
                 </SearchInputWrapper>
               )}
               <OptionsScroll>
