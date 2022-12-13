@@ -30,11 +30,6 @@ jobs:
             else
               echo "Skipping... branch is not develop"
             fi
-      - run:
-          name: Generate unix timestamp
-          command: |
-            BUILD_TIMESTAMP=$(date +%s) 
-            echo $BUILD_TIMESTAMP 
       - save_cache:
           key: dependency-cache-{{ checksum "package.json" }}
           paths:
@@ -61,6 +56,11 @@ jobs:
       - run:
           name: Set Etherspot project key variable
           command: echo "ETHERSPOT_PROJECT_KEY=$ETHERSPOT_PROJECT_KEY" > ~/etherspot-react-transaction-buidler/.env
+      - run:
+          name: Generate unix timestamp
+          command: |
+            BUILD_TIMESTAMP=$(date +%s) 
+            echo "BUILD_TIMESTAMP=$BUILD_TIMESTAMP" > ~/etherspot-react-transaction-buidler/.env
       - run:
           name: Build Etherpot React Transaction BUIDLer
           command: NODE_ENV=production npm run rollup:build
