@@ -30,6 +30,11 @@ jobs:
             else
               echo "Skipping... branch is not develop"
             fi
+      - run:
+          name: Generate unix timestamp
+          command: |
+            BUILD_TIMESTAMP=$(date +%s) 
+            echo $BUILD_TIMESTAMP 
       - save_cache:
           key: dependency-cache-{{ checksum "package.json" }}
           paths:
