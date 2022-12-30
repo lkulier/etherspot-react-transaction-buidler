@@ -157,8 +157,8 @@ const EtherspotContextProvider = ({
       sdk.state$.subscribe(async (sdkState) => {
         if (sdkState?.account?.type === AccountTypes.Key) {
           setProviderAddress(sdkState.account.address);
+          console.log("sdkState", sdkState)
           const sessionStorage = etherspotSessionStorage ?? sessionStorageInstance;
-
           try {
             const session = await sessionStorage.getSession(sdkState.account.address);
             if (isRestoringSession || !session || +new Date(session.expireAt) <= +new Date()) return;

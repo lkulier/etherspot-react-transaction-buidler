@@ -11,6 +11,7 @@ class LocalSessionStorage extends SessionStorage {
   }
 
   setSession = async (walletAddress: string, session: Object) => {
+    console.log("walletAddress__set", walletAddress, session)
     if (walletAddress) {
       setItem(`session-${walletAddress}`, JSON.stringify(session))
     }
@@ -18,6 +19,7 @@ class LocalSessionStorage extends SessionStorage {
 
   getSession = (walletAddress: string) => {
     let result = null;
+    console.log("walletAddress__get", walletAddress)
 
     try {
       const raw = getItem(`session-${walletAddress}`)
@@ -30,6 +32,7 @@ class LocalSessionStorage extends SessionStorage {
   }
 
   resetSession = (walletAddress: string) => {
+    console.log("walletAddress__reset", walletAddress)
     setItem(`session-${walletAddress}`, '');
   }
 }
