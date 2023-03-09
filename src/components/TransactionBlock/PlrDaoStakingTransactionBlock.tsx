@@ -505,7 +505,7 @@ const PlrDaoStakingTransactionBlock = ({
           {!!valueToReceive && (
             <Text size={16} medium>
               {valueToReceive} {plrDaoAsset.symbol}
-              {targetAssetPriceUsd && ` · ${formatAmountDisplay(+valueToReceiveRaw * targetAssetPriceUsd, '$')}`}
+              {targetAssetPriceUsd && ` · ${formatAmountDisplay(+valueToReceiveRaw * targetAssetPriceUsd, '$', 2)}`}
             </Text>
           )}
         </div>
@@ -521,7 +521,7 @@ const PlrDaoStakingTransactionBlock = ({
   );
 
   const totalTokens = formatAmountDisplay(totalKeyBasedPLRTokens + totalSmartWalletPLRTokens);
-  const tokenArray = hasEnoughPLR ? [] : accounts;
+  const tokenArray = hasEnoughPLR && accounts.length == 1 ? [] : accounts;
 
   if (isNFTMember) {
     return (
