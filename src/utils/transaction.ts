@@ -1319,6 +1319,15 @@ export const buildCrossChainAction = async (
         if (!stakeTransactionRequest || !stakeTransactionRequest.to) {
           return { errorMessage: 'Failed build stake transaction!' };
         }
+        const stakeTransaction = {
+          to: stakeTransactionRequest.to,
+          data: stakeTransactionRequest.data,
+          chainId: fromChainId,
+          value: 0,
+          createTimestamp,
+          status: CROSS_CHAIN_ACTION_STATUS.UNSENT,
+        };
+        transactions = [stakeTransaction];
       } catch (e) {
         return { errorMessage: 'Failed to build stake transaction!' };
       }
