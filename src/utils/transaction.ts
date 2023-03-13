@@ -27,7 +27,7 @@ import { map as rxjsMap } from 'rxjs/operators';
 import { TRANSACTION_BLOCK_TYPE } from '../constants/transactionBuilderConstants';
 import { addressesEqual, isValidEthereumAddress, isZeroAddress } from './validation';
 import { CHAIN_ID, changeToChain, nativeAssetPerChainId, supportedChains, plrDaoMemberNFT } from './chain';
-import { plrDaoAsset, plrStakedAssetEthereumMainnet } from './asset';
+import { plrDaoAsset, demoPlrStakedAssetEthereumMainnet } from './asset';
 import { parseEtherspotErrorMessageIfAvailable } from './etherspot';
 import { getAssetPriceInUsd, getNativeAssetPriceInUsd } from '../services/coingecko';
 import { bridgeServiceIdToDetails } from './bridge';
@@ -40,7 +40,7 @@ import {
 } from '../types/crossChainAction';
 import { CROSS_CHAIN_ACTION_STATUS } from '../constants/transactionDispatcherConstants';
 import { ITransactionBlock } from '../types/transactionBlock';
-import { PLR_STAKING_ADDRESS_ETHEREUM_MAINNET, POLYGON_USDC_CONTRACT_ADDRESS } from '../constants/assetConstants';
+import { DEMO_PLR_STAKING_ADDRESS_ETHEREUM_MAINNET, POLYGON_USDC_CONTRACT_ADDRESS } from '../constants/assetConstants';
 import { PlrV2StakingContract } from '../types/etherspotContracts';
 
 const fetchBestRoute = async (
@@ -1265,7 +1265,7 @@ export const buildCrossChainAction = async (
 
     const fromAmountBN = ethers.utils.parseUnits(amount, fromAssetDecimals);
 
-    let toAssetAmount = addressesEqual(toAssetAddress, plrStakedAssetEthereumMainnet.address)
+    let toAssetAmount = addressesEqual(toAssetAddress, demoPlrStakedAssetEthereumMainnet.address)
       ? fromAmountBN
       : '0';
 
@@ -1290,30 +1290,31 @@ export const buildCrossChainAction = async (
       }
     } else if (swap?.type === 'CROSS_CHAIN_SWAP' && swap.route) {
       try {
-        const routeData = await fetchBestRoute(
-          sdk,
-          fromChainId,
-          toChainId,
-          fromAmountBN,
-          fromAssetAddress,
-          toAssetAddress,
-          receiverAddress,
-        );
+        const [firstStep] = swap.route.steps;
+        const bridgeServiceDetails = bridgeServiceIdToDetails[firstStep?.toolDetails?.key ?? ''];
+        providerName = firstStep?.toolDetails?.name ?? bridgeServiceDetails?.title ?? 'LiFi';
+        providerIconUrl = firstStep?.toolDetails?.logoURI ?? bridgeServiceDetails?.iconUrl;
 
-        if (routeData.errorMessage) return { errorMessage: routeData.errorMessage };
-        if (!routeData.bestRoute) return { errorMessage: 'Failed build swap transaction!' };
+        const { items: advancedRouteSteps } = await sdk.getStepTransaction({ route: swap.route });
+        transactions = advancedRouteSteps.map(({ to, value, data, chainId }) => ({
+          to: to as string,
+          value,
+          data,
+          chainId: chainId ?? fromChainId,
+          createTimestamp,
+          status: CROSS_CHAIN_ACTION_STATUS.UNSENT,
+        }));
 
-        transactions = routeData.destinationTxns ?? [];
-        toAssetAmount = BigNumber.from(routeData.bestRoute.toAmount);
+        toAssetAmount = swap.route.toAmount;
       } catch (e) {
         return { errorMessage: 'Failed to build cross chain swap transaction!' };
       }
-    } else if (addressesEqual(toAssetAddress, PLR_STAKING_ADDRESS_ETHEREUM_MAINNET)) {
+    } else if (addressesEqual(toAssetAddress, DEMO_PLR_STAKING_ADDRESS_ETHEREUM_MAINNET)) {
       try {
         const plrV2StakingContract = sdk.registerContract<PlrV2StakingContract>(
           'plrV2StakingContract',
           ['function stake(uint256)'],
-          PLR_STAKING_ADDRESS_ETHEREUM_MAINNET,
+          DEMO_PLR_STAKING_ADDRESS_ETHEREUM_MAINNET,
         );
         const stakeTransactionRequest = plrV2StakingContract?.encodeStake?.(toAssetAmount);
         if (!stakeTransactionRequest || !stakeTransactionRequest.to) {
