@@ -29,9 +29,9 @@ import { swapServiceIdToDetails } from '../../utils/swap';
 import { Theme } from '../../utils/theme';
 import { bridgeServiceIdToDetails } from '../../utils/bridge';
 import {
-  getPlrAssetForChainId,
   demoPlrStakedAssetEthereumMainnet,
   plrStakedAssetEthereumMainnet,
+  demoPlrEthereumMainnet,
 } from '../../utils/asset';
 
 // constants
@@ -186,6 +186,8 @@ const PlrStakingV2TransactionBlock = ({
     return isEnoughPlrBalanceToStake(plrBalanceCrossChain);
   }, [providerAddress, accountAddress, addressPlrBalancePerChain]);
 
+  const ethereumMainnetChain = supportedChains.find((chain) => chain.chainId === CHAIN_ID.ETHEREUM_MAINNET) as Chain;
+
   useEffect(() => {
     const setPlrAsDefault = (selectedAccountType === AccountTypes.Key
         && providerAddress
@@ -198,17 +200,13 @@ const PlrStakingV2TransactionBlock = ({
 
     if (!setPlrAsDefault) return;
 
-    const ethereumMainnetChain = supportedChains.find((chain) => chain.chainId === CHAIN_ID.ETHEREUM_MAINNET) as Chain;
     setSelectedFromNetwork(ethereumMainnetChain);
     setSelectedToNetwork(ethereumMainnetChain);
 
     const balanceAddress = (selectedAccountType === AccountTypes.Key ? providerAddress : accountAddress) as string;
-    const plrAsset = getPlrAssetForChainId(
-      CHAIN_ID.ETHEREUM_MAINNET,
-      addressPlrBalancePerChain[balanceAddress][CHAIN_ID.ETHEREUM_MAINNET] as BigNumber,
-    );
+    const balance = addressPlrBalancePerChain[balanceAddress][CHAIN_ID.ETHEREUM_MAINNET] as BigNumber;
 
-    setSelectedFromAsset(plrAsset);
+    setSelectedFromAsset({ ...demoPlrEthereumMainnet, balance });
     setSelectedToAsset(demoPlrStakedAssetEthereumMainnet);
   }, [
     addressPlrBalancePerChain,
@@ -216,6 +214,23 @@ const PlrStakingV2TransactionBlock = ({
     providerAddress,
     accountAddress,
   ]);
+
+  useEffect(() => {
+    if (addressesEqual(selectedToAsset?.address, demoPlrStakedAssetEthereumMainnet.address)
+      && !addressesEqual(selectedFromAsset?.address, DEMO_PLR_ADDRESS_ETHEREUM_MAINNET)) {
+      setSelectedToNetwork(null);
+      setSelectedToAsset(null);
+    }
+  }, [selectedFromAsset, selectedToAsset]);
+
+  useEffect(() => {
+    if (selectedFromNetwork?.chainId === CHAIN_ID.ETHEREUM_MAINNET
+      && addressesEqual(selectedFromAsset?.address, DEMO_PLR_ADDRESS_ETHEREUM_MAINNET)
+      && !addressesEqual(selectedToAsset?.address, demoPlrStakedAssetEthereumMainnet.address)) {
+      setSelectedToNetwork(ethereumMainnetChain);
+      setSelectedToAsset(demoPlrStakedAssetEthereumMainnet);
+    }
+  }, [selectedFromNetwork, selectedFromAsset, selectedToAsset]);
 
   // cross chain swaps
   const defaultRoute = values?.swap?.type === 'CROSS_CHAIN_SWAP' && values?.swap?.route;
@@ -547,7 +562,7 @@ const PlrStakingV2TransactionBlock = ({
     return sum + walletSum;
   }, 0), [addressPlrBalancePerChain]);
 
-  const isStakingAssetSelected = selectedToAsset?.address === demoPlrStakedAssetEthereumMainnet.address;
+  const isStakingAssetSelected = addressesEqual(selectedToAsset?.address, demoPlrStakedAssetEthereumMainnet.address);
 
   const assetToSelectDisabled = !selectedFromNetwork
     || !selectedFromAsset
@@ -759,7 +774,7 @@ const PlrStakingV2TransactionBlock = ({
           <>
             {selectedFromNetwork?.chainId !== selectedToNetwork?.chainId && (
               <SelectInput
-                label={'Route'}
+                label="Route"
                 options={availableRoutesOptions ?? []}
                 isLoading={isLoadingAvailableRoutes}
                 selectedOption={selectedRoute}
@@ -778,7 +793,7 @@ const PlrStakingV2TransactionBlock = ({
             )}
             {selectedFromNetwork?.chainId === selectedToNetwork?.chainId && (
               <SelectInput
-                label={'Offer'}
+                label="Offer"
                 options={availableOffersOptions ?? []}
                 isLoading={isLoadingAvailableOffers}
                 disabled={!availableOffersOptions?.length || isLoadingAvailableOffers}
@@ -789,7 +804,7 @@ const PlrStakingV2TransactionBlock = ({
                 }}
                 renderOptionListItemContent={renderOfferOption}
                 renderSelectedOptionContent={renderOfferOption}
-                placeholder='Select offer'
+                placeholder="Select offer"
                 errorMessage={errorMessages?.offer}
                 noOpen={!!selectedOffer && availableOffersOptions?.length === 1}
                 forceShow={!!availableOffersOptions?.length && availableOffersOptions?.length > 1}
