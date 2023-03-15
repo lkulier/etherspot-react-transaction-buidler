@@ -59,7 +59,7 @@ export const demoPlrEthereumMainnet: IAssetWithBalance = {
   address: '0x8314Af54080dF4d05768c5D3f097f59f170d9564',
   chainId: CHAIN_ID.ETHEREUM_MAINNET,
   name: 'Pillar (DEMO)',
-  symbol: 'PLR',
+  symbol: 'demoPLR',
   decimals: 18,
   logoURI: 'https://assets.coingecko.com/coins/images/809/small/v2logo-1.png',
   balance: BigNumber.from(0),

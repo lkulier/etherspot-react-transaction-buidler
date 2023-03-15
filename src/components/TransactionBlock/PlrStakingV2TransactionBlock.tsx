@@ -28,12 +28,16 @@ import { Chain, supportedChains, CHAIN_ID } from '../../utils/chain';
 import { swapServiceIdToDetails } from '../../utils/swap';
 import { Theme } from '../../utils/theme';
 import { bridgeServiceIdToDetails } from '../../utils/bridge';
-import { getPlrAssetForChainId, demoPlrStakedAssetEthereumMainnet } from '../../utils/asset';
+import {
+  getPlrAssetForChainId,
+  demoPlrStakedAssetEthereumMainnet,
+  plrStakedAssetEthereumMainnet,
+} from '../../utils/asset';
 
 // constants
 import {
   PLR_ADDRESS_PER_CHAIN,
-  DEMO_PLR_STAKING_ADDRESS_ETHEREUM_MAINNET,
+  DEMO_PLR_ADDRESS_ETHEREUM_MAINNET,
 } from '../../constants/assetConstants';
 
 interface ICrossChainSwap {
@@ -127,7 +131,7 @@ const mapRouteToOption = (route: Route) => {
 
 interface IPlrBalancePerChain { [chainId: string]: BigNumber | undefined }
 
-const MIN_PLR_STAKE_AMOUNT = '10000';
+export const MIN_PLR_STAKE_V2_AMOUNT = '10000';
 
 const chainIdsWithPlrTokens = [CHAIN_ID.ETHEREUM_MAINNET, CHAIN_ID.BINANCE, CHAIN_ID.XDAI, CHAIN_ID.POLYGON];
 
@@ -135,7 +139,7 @@ const isEnoughPlrBalanceToStake = (
   plrBalance: BigNumber | undefined,
 ): boolean => {
   if (!plrBalance) return false;
-  const requiredAmountBN = ethers.utils.parseUnits(MIN_PLR_STAKE_AMOUNT, 18);
+  const requiredAmountBN = ethers.utils.parseUnits(MIN_PLR_STAKE_V2_AMOUNT, 18);
   return plrBalance.gte(requiredAmountBN);
 }
 
@@ -393,7 +397,7 @@ const PlrStakingV2TransactionBlock = ({
         route,
       }
     } else if (selectedFromNetwork?.chainId === selectedToNetwork?.chainId
-      && !addressesEqual(selectedFromAsset?.address, DEMO_PLR_STAKING_ADDRESS_ETHEREUM_MAINNET)) {
+      && !addressesEqual(selectedFromAsset?.address, DEMO_PLR_ADDRESS_ETHEREUM_MAINNET)) {
       const offer = availableOffers?.find((availableOffer) => availableOffer.provider === selectedOffer?.value);
       swap = {
         type: 'SAME_CHAIN_SWAP',
@@ -497,8 +501,9 @@ const PlrStakingV2TransactionBlock = ({
   }, [amount, selectedFromAsset]);
 
   const inputTitle = useMemo(() => {
+    if (addressesEqual(selectedToAsset?.address, plrStakedAssetEthereumMainnet.address)) return 'You stake';
     return 'You swap';
-  }, []);
+  }, [selectedFromAsset]);
 
   const renderRouteOption = (option: SelectOption) => (
     <RouteOption

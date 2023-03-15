@@ -8,7 +8,11 @@ import { nativeAssetPerChainId } from './chain';
 import { ITransactionBlock } from '../types/transactionBlock';
 import { IKlimaStakingTransactionBlockValues } from '../components/TransactionBlock/KlimaStakingTransactionBlock';
 import { IPlrDaoTransactionBlockValues } from '../components/TransactionBlock/PlrDaoStakingTransactionBlock';
-import { IPlrStakingV2BlockValues } from '../components/TransactionBlock/PlrStakingV2TransactionBlock';
+import {
+  IPlrStakingV2BlockValues,
+  MIN_PLR_STAKE_V2_AMOUNT,
+} from '../components/TransactionBlock/PlrStakingV2TransactionBlock';
+import { demoPlrStakedAssetEthereumMainnet } from './asset';
 
 export const isValidEthereumAddress = (address: string | undefined): boolean => {
   if (!address) return false;
@@ -97,6 +101,12 @@ export const validateTransactionBlockValues = (
     if (!transactionBlockValues?.fromChain) errors.fromChain = 'No source chain selected!';
     if (!transactionBlockValues?.toChain) errors.toChain = 'No destination chain selected!';
     if (!isValidAmount(transactionBlockValues?.amount)) errors.amount = 'Incorrect asset amount!';
+    if (transactionBlockValues?.amount
+      && isValidAmount(transactionBlockValues?.amount)
+      && addressesEqual(transactionBlockValues?.toAsset?.address, demoPlrStakedAssetEthereumMainnet.address)
+      && +transactionBlockValues.amount < +MIN_PLR_STAKE_V2_AMOUNT) {
+      errors.amount = `Minimum amount: ${MIN_PLR_STAKE_V2_AMOUNT} PLR!`;
+    }
     if (!transactionBlockValues?.fromAsset) errors.fromAsset = 'Invalid source asset selected!';
     if (!transactionBlockValues?.toAsset) errors.toAsset = 'Invalid destination asset selected!';
     if (transactionBlockValues?.swap?.type === 'CROSS_CHAIN_SWAP' && !transactionBlockValues?.swap?.route) {

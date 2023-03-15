@@ -40,7 +40,10 @@ import {
 } from '../types/crossChainAction';
 import { CROSS_CHAIN_ACTION_STATUS } from '../constants/transactionDispatcherConstants';
 import { ITransactionBlock } from '../types/transactionBlock';
-import { DEMO_PLR_STAKING_ADDRESS_ETHEREUM_MAINNET, POLYGON_USDC_CONTRACT_ADDRESS } from '../constants/assetConstants';
+import {
+  DEMO_PLR_STAKING_ADDRESS_ETHEREUM_MAINNET,
+  POLYGON_USDC_CONTRACT_ADDRESS,
+} from '../constants/assetConstants';
 import { PlrV2StakingContract } from '../types/etherspotContracts';
 
 const fetchBestRoute = async (
@@ -1309,7 +1312,7 @@ export const buildCrossChainAction = async (
       } catch (e) {
         return { errorMessage: 'Failed to build cross chain swap transaction!' };
       }
-    } else if (addressesEqual(toAssetAddress, DEMO_PLR_STAKING_ADDRESS_ETHEREUM_MAINNET)) {
+    } else if (addressesEqual(toAssetAddress, demoPlrStakedAssetEthereumMainnet.address)) {
       try {
         const plrV2StakingContract = sdk.registerContract<PlrV2StakingContract>(
           'plrV2StakingContract',
@@ -1421,6 +1424,8 @@ export const buildCrossChainAction = async (
       useWeb3Provider: accountType === AccountTypes.Key,
       multiCallData: transactionBlock?.multiCallData,
     };
+
+    console.log({ crossChainAction })
 
     return { crossChainAction };
   }

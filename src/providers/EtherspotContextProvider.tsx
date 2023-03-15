@@ -20,6 +20,7 @@ import { TokenListToken } from 'etherspot/dist/sdk/assets/classes/token-list-tok
 import { addressesEqual, isCaseInsensitiveMatch, isNativeAssetAddress, isZeroAddress } from '../utils/validation';
 import { sessionStorageInstance } from '../services/etherspot';
 import { sumAssetsBalanceWorth } from '../utils/common';
+import { demoPlrEthereumMainnet } from '../utils/asset';
 
 export type IAsset = TokenListToken;
 
@@ -214,6 +215,11 @@ const EtherspotContextProvider = ({
         });
       } catch (e) {
         //
+      }
+
+      // TODO: remove before merging, only for test token
+      if (chainId === CHAIN_ID.ETHEREUM_MAINNET) {
+        assets = [...assets, demoPlrEthereumMainnet];
       }
 
       const nativeAsset = nativeAssetPerChainId[assetsChainId];
