@@ -28,12 +28,12 @@ import { Chain, supportedChains, CHAIN_ID } from '../../utils/chain';
 import { swapServiceIdToDetails } from '../../utils/swap';
 import { Theme } from '../../utils/theme';
 import { bridgeServiceIdToDetails } from '../../utils/bridge';
-import { getPlrAssetForChainId, plrStakedAssetEthereumMainnet } from '../../utils/asset';
+import { getPlrAssetForChainId, demoPlrStakedAssetEthereumMainnet } from '../../utils/asset';
 
 // constants
 import {
   PLR_ADDRESS_PER_CHAIN,
-  PLR_STAKING_ADDRESS_ETHEREUM_MAINNET,
+  DEMO_PLR_STAKING_ADDRESS_ETHEREUM_MAINNET,
 } from '../../constants/assetConstants';
 
 interface ICrossChainSwap {
@@ -184,10 +184,10 @@ const PlrStakingV2TransactionBlock = ({
 
   useEffect(() => {
     const setPlrAsDefault = (selectedAccountType === AccountTypes.Key
-      && providerAddress
-      && addressPlrBalancePerChain?.[providerAddress]?.[CHAIN_ID.ETHEREUM_MAINNET]
-      && isEnoughPlrBalanceToStake(addressPlrBalancePerChain?.[providerAddress]?.[CHAIN_ID.ETHEREUM_MAINNET]))
-    || (selectedAccountType === AccountTypes.Contract
+        && providerAddress
+        && addressPlrBalancePerChain?.[providerAddress]?.[CHAIN_ID.ETHEREUM_MAINNET]
+        && isEnoughPlrBalanceToStake(addressPlrBalancePerChain?.[providerAddress]?.[CHAIN_ID.ETHEREUM_MAINNET]))
+      || (selectedAccountType === AccountTypes.Contract
         && accountAddress
         && addressPlrBalancePerChain?.[accountAddress]?.[CHAIN_ID.ETHEREUM_MAINNET]
         && isEnoughPlrBalanceToStake(addressPlrBalancePerChain?.[accountAddress]?.[CHAIN_ID.ETHEREUM_MAINNET]));
@@ -205,7 +205,7 @@ const PlrStakingV2TransactionBlock = ({
     );
 
     setSelectedFromAsset(plrAsset);
-    setSelectedToAsset(plrStakedAssetEthereumMainnet);
+    setSelectedToAsset(demoPlrStakedAssetEthereumMainnet);
   }, [
     addressPlrBalancePerChain,
     selectedAccountType,
@@ -393,7 +393,7 @@ const PlrStakingV2TransactionBlock = ({
         route,
       }
     } else if (selectedFromNetwork?.chainId === selectedToNetwork?.chainId
-      && !addressesEqual(selectedFromAsset?.address, PLR_STAKING_ADDRESS_ETHEREUM_MAINNET)) {
+      && !addressesEqual(selectedFromAsset?.address, DEMO_PLR_STAKING_ADDRESS_ETHEREUM_MAINNET)) {
       const offer = availableOffers?.find((availableOffer) => availableOffer.provider === selectedOffer?.value);
       swap = {
         type: 'SAME_CHAIN_SWAP',
@@ -542,7 +542,7 @@ const PlrStakingV2TransactionBlock = ({
     return sum + walletSum;
   }, 0), [addressPlrBalancePerChain]);
 
-  const isStakingAssetSelected = selectedToAsset?.address === plrStakedAssetEthereumMainnet.address;
+  const isStakingAssetSelected = selectedToAsset?.address === demoPlrStakedAssetEthereumMainnet.address;
 
   const assetToSelectDisabled = !selectedFromNetwork
     || !selectedFromAsset
@@ -695,7 +695,11 @@ const PlrStakingV2TransactionBlock = ({
         selectedAsset={selectedToAsset}
         errorMessage={errorMessages?.toChain || errorMessages?.toAsset}
         disabled={assetToSelectDisabled}
-        hideChainIds={[CHAIN_ID.AVALANCHE]}
+        hideChainIds={
+          supportedChains
+            .map((chain) => chain.chainId)
+            .filter((chainId) => chainId !== CHAIN_ID.ETHEREUM_MAINNET)
+        }
         hideAssets={
           selectedFromNetwork && selectedFromAsset
             ? [{ chainId: selectedFromNetwork.chainId, address: selectedFromAsset.address }]
@@ -787,7 +791,7 @@ const PlrStakingV2TransactionBlock = ({
               />
             )}
           </>
-      )}
+        )}
     </>
   );
 };
