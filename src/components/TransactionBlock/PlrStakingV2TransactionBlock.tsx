@@ -40,6 +40,9 @@ import {
   DEMO_PLR_ADDRESS_ETHEREUM_MAINNET,
 } from '../../constants/assetConstants';
 
+// services
+import { getStakingV2StakedAmount } from '../../services/contracts';
+
 interface ICrossChainSwap {
   type: 'CROSS_CHAIN_SWAP',
   route?: Route;
@@ -131,6 +134,8 @@ const mapRouteToOption = (route: Route) => {
 
 interface IPlrBalancePerChain { [chainId: string]: BigNumber | undefined }
 
+interface IStakedAmountPerAddress { [address: string]: BigNumber | undefined }
+
 export const MIN_PLR_STAKE_V2_AMOUNT = '10000';
 
 const chainIdsWithPlrTokens = [CHAIN_ID.ETHEREUM_MAINNET, CHAIN_ID.BINANCE, CHAIN_ID.XDAI, CHAIN_ID.POLYGON];
@@ -153,6 +158,7 @@ const PlrStakingV2TransactionBlock = ({
     providerAddress,
     accountAddress,
     smartWalletOnly,
+    web3Provider,
   } = useEtherspot();
 
   const [amount, setAmount] = useState<string>(values?.amount ?? '');
@@ -165,11 +171,33 @@ const PlrStakingV2TransactionBlock = ({
     addressPlrBalancePerChain,
     setAddressPlrBalancePerChain,
   ] = useState<{ [address: string]: IPlrBalancePerChain }>({});
+  const [stakedAmountPerAddress, setStakedAmountPerAddress] = useState<IStakedAmountPerAddress>({});
+
+  useEffect(() => {
+    let shouldUpdate = true;
+
+    const update = async () => {
+      await Promise.all([providerAddress, accountAddress].map(async (address) => {
+        if (!address || !web3Provider) return;
+        const stakedAmount = await getStakingV2StakedAmount(address, web3Provider);
+        if (!shouldUpdate) return;
+        setStakedAmountPerAddress((current) => ({ ...current, [address]: stakedAmount }));
+      }));
+    };
+    update();
+
+    return () => { shouldUpdate = false; }
+  }, [providerAddress, accountAddress, web3Provider]);
 
   const hasEnoughPlrToStake = useMemo(() => [providerAddress, accountAddress].some((address) => {
     if (!address || !addressPlrBalancePerChain?.[address]?.[CHAIN_ID.ETHEREUM_MAINNET]) return false;
     return isEnoughPlrBalanceToStake(addressPlrBalancePerChain[address][CHAIN_ID.ETHEREUM_MAINNET]);
   }), [providerAddress, accountAddress, addressPlrBalancePerChain]);
+
+  const hasPlrStaked = useMemo(() => [providerAddress, accountAddress].some((address) => {
+    if (!address || !stakedAmountPerAddress[address]) return false;
+    return stakedAmountPerAddress[address]?.gt(0);
+  }), [providerAddress, accountAddress, stakedAmountPerAddress]);
 
   const hasEnoughPlrCrossChainToStake = useMemo(() => {
     const plrBalanceCrossChain = [providerAddress, accountAddress].reduce((total, address) => {
@@ -573,16 +601,33 @@ const PlrStakingV2TransactionBlock = ({
       <Title>Pillar Validator Staking</Title>
       <ContainerWrapper>
         <Container>
-          <Text size={14}>
-            {!hasEnoughPlrToStake && (
-              <>
-                You need a minimum of
-                &nbsp;<Highlighted color={theme.color?.text?.blockParagraphHighlight}>10,000 PLR</Highlighted>
-                &nbsp;tokens on Ethereum, swap more assets to PLR on Ethereum Mainnet.
-              </>
-            )}
-            {hasEnoughPlrToStake && <>You can stake your PLR tokens.</>}
-          </Text>
+          {!hasPlrStaked && (
+            <Text size={14}>
+              {!hasEnoughPlrToStake && (
+                <>
+                  You need a minimum of
+                  &nbsp;<Highlighted color={theme.color?.text?.blockParagraphHighlight}>10,000 PLR</Highlighted>
+                  &nbsp;tokens on Ethereum, swap more assets to PLR on Ethereum Mainnet.
+                </>
+              )}
+              {hasEnoughPlrToStake && <>You can stake your PLR tokens.</>}
+            </Text>
+          )}
+          {hasPlrStaked && [providerAddress, accountAddress].map((address) => {
+            if (!address || !stakedAmountPerAddress[address]?.gt(0)) return;
+            const stakedAmount = ethers.utils.formatEther(stakedAmountPerAddress[address] as BigNumber);
+            const stakedAmountFormatted = formatAmountDisplay(stakedAmount);
+            const walletTitle = accountAddress === address ? 'Smart Wallet' : 'Key Based';
+            return (
+              <Text size={14} block>
+                You have
+                <Highlighted color={theme.color?.text?.blockParagraphHighlightSecondary}>
+                  &nbsp;{stakedAmountFormatted} stkPLR
+                </Highlighted>
+                &nbsp;on {walletTitle}
+              </Text>
+            )
+          })}
           <HorizontalLine />
           {plrTokensSum > 0 && (
             <>
