@@ -260,6 +260,15 @@ const PlrStakingV2TransactionBlock = ({
     }
   }, [selectedFromNetwork, selectedFromAsset, selectedToAsset]);
 
+  useEffect(() => {
+    if (selectedFromNetwork?.chainId === CHAIN_ID.ETHEREUM_MAINNET
+      && !addressesEqual(selectedFromAsset?.address, DEMO_PLR_ADDRESS_ETHEREUM_MAINNET)
+      && !addressesEqual(selectedToAsset?.address, DEMO_PLR_ADDRESS_ETHEREUM_MAINNET)) {
+      setSelectedToNetwork(ethereumMainnetChain);
+      setSelectedToAsset(demoPlrEthereumMainnet);
+    }
+  }, [selectedFromNetwork, selectedFromAsset, selectedToAsset]);
+
   // cross chain swaps
   const defaultRoute = values?.swap?.type === 'CROSS_CHAIN_SWAP' && values?.swap?.route;
   const [selectedRoute, setSelectedRoute] = useState<SelectOption | null>(defaultRoute ? mapRouteToOption(defaultRoute) : null);
@@ -592,9 +601,13 @@ const PlrStakingV2TransactionBlock = ({
 
   const isStakingAssetSelected = addressesEqual(selectedToAsset?.address, demoPlrStakedAssetEthereumMainnet.address);
 
+  const isEthereumMainnetSwapNotFromPlr = selectedFromNetwork?.chainId === CHAIN_ID.ETHEREUM_MAINNET
+    && !addressesEqual(selectedFromAsset?.address, DEMO_PLR_ADDRESS_ETHEREUM_MAINNET);
+
   const assetToSelectDisabled = !selectedFromNetwork
     || !selectedFromAsset
-    || isStakingAssetSelected;
+    || isStakingAssetSelected
+    || isEthereumMainnetSwapNotFromPlr;
 
   return (
     <>
