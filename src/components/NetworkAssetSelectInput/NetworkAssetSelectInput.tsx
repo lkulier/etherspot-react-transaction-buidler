@@ -435,6 +435,11 @@ const NetworkAssetSelectInput = ({
     return ''
   };
 
+  useEffect(() => {
+    // hides network select modal if selected asset changes outside component
+    setShowSelectModal(false);
+  }, [selectedAsset]);
+
   return (
     <Wrapper hover={!showSelectModal} disabled={disabled} onClick={onSelectClick} expanded={showSelectModal}>
       {!!label && <Label htmlFor={inputId}>{label}</Label>}
