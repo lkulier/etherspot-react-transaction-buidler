@@ -243,9 +243,14 @@ const PlrStakingV2TransactionBlock = ({
     accountAddress,
   ]);
 
+  const isFromPlrOnEthereumMainnetSelected = addressesEqual(
+    selectedFromAsset?.address,
+    DEMO_PLR_ADDRESS_ETHEREUM_MAINNET,
+  );
+
   useEffect(() => {
     if (addressesEqual(selectedToAsset?.address, demoPlrStakedAssetEthereumMainnet.address)
-      && !addressesEqual(selectedFromAsset?.address, DEMO_PLR_ADDRESS_ETHEREUM_MAINNET)) {
+      && !isFromPlrOnEthereumMainnetSelected) {
       setSelectedToNetwork(null);
       setSelectedToAsset(null);
     }
@@ -253,17 +258,20 @@ const PlrStakingV2TransactionBlock = ({
 
   useEffect(() => {
     if (selectedFromNetwork?.chainId === CHAIN_ID.ETHEREUM_MAINNET
-      && addressesEqual(selectedFromAsset?.address, DEMO_PLR_ADDRESS_ETHEREUM_MAINNET)
+      && isFromPlrOnEthereumMainnetSelected
       && !addressesEqual(selectedToAsset?.address, demoPlrStakedAssetEthereumMainnet.address)) {
       setSelectedToNetwork(ethereumMainnetChain);
       setSelectedToAsset(demoPlrStakedAssetEthereumMainnet);
     }
   }, [selectedFromNetwork, selectedFromAsset, selectedToAsset]);
 
+  const shouldOfferSwapToPlrOnEthereumMainnet = selectedFromNetwork
+    && selectedFromNetwork?.chainId !== CHAIN_ID.ETHEREUM_MAINNET
+      || (selectedFromNetwork?.chainId === CHAIN_ID.ETHEREUM_MAINNET && !isFromPlrOnEthereumMainnetSelected);
+
   useEffect(() => {
-    if (selectedFromNetwork?.chainId === CHAIN_ID.ETHEREUM_MAINNET
-      && !addressesEqual(selectedFromAsset?.address, DEMO_PLR_ADDRESS_ETHEREUM_MAINNET)
-      && !addressesEqual(selectedToAsset?.address, DEMO_PLR_ADDRESS_ETHEREUM_MAINNET)) {
+    if (shouldOfferSwapToPlrOnEthereumMainnet
+      && !addressesEqual(selectedToAsset?.address, demoPlrEthereumMainnet.address)) {
       setSelectedToNetwork(ethereumMainnetChain);
       setSelectedToAsset(demoPlrEthereumMainnet);
     }
@@ -448,8 +456,7 @@ const PlrStakingV2TransactionBlock = ({
         type: 'CROSS_CHAIN_SWAP',
         route,
       }
-    } else if (selectedFromNetwork?.chainId === selectedToNetwork?.chainId
-      && !addressesEqual(selectedFromAsset?.address, DEMO_PLR_ADDRESS_ETHEREUM_MAINNET)) {
+    } else if (selectedFromNetwork?.chainId === selectedToNetwork?.chainId && !isFromPlrOnEthereumMainnetSelected) {
       const offer = availableOffers?.find((availableOffer) => availableOffer.provider === selectedOffer?.value);
       swap = {
         type: 'SAME_CHAIN_SWAP',
@@ -601,13 +608,10 @@ const PlrStakingV2TransactionBlock = ({
 
   const isStakingAssetSelected = addressesEqual(selectedToAsset?.address, demoPlrStakedAssetEthereumMainnet.address);
 
-  const isEthereumMainnetSwapNotFromPlr = selectedFromNetwork?.chainId === CHAIN_ID.ETHEREUM_MAINNET
-    && !addressesEqual(selectedFromAsset?.address, DEMO_PLR_ADDRESS_ETHEREUM_MAINNET);
-
   const assetToSelectDisabled = !selectedFromNetwork
     || !selectedFromAsset
     || isStakingAssetSelected
-    || isEthereumMainnetSwapNotFromPlr;
+    || shouldOfferSwapToPlrOnEthereumMainnet;
 
   return (
     <>
