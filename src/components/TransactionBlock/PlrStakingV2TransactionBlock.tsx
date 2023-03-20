@@ -265,8 +265,8 @@ const PlrStakingV2TransactionBlock = ({
     }
   }, [selectedFromNetwork, selectedFromAsset, selectedToAsset]);
 
-  const shouldOfferSwapToPlrOnEthereumMainnet = selectedFromNetwork
-    && selectedFromNetwork?.chainId !== CHAIN_ID.ETHEREUM_MAINNET
+  const shouldOfferSwapToPlrOnEthereumMainnet = (selectedFromNetwork
+    && selectedFromNetwork?.chainId !== CHAIN_ID.ETHEREUM_MAINNET)
       || (selectedFromNetwork?.chainId === CHAIN_ID.ETHEREUM_MAINNET && !isFromPlrOnEthereumMainnetSelected);
 
   useEffect(() => {
