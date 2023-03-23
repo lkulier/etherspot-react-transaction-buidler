@@ -19,3 +19,5 @@ export const PLR_ADDRESS_PER_CHAIN = {
 // TODO: to be added once available, contract said to be deployed once QA passes UI
 export const PLR_STAKING_ADDRESS_ETHEREUM_MAINNET = '0x';
 export const DEMO_PLR_STAKING_ADDRESS_ETHEREUM_MAINNET = '0xE5b78d1b19A5C1d5F36D8b2DbFc6c79A6083FB61';
+export const MIN_PLR_STAKE_V2_AMOUNT = '10000';
+export const MAX_PLR_STAKE_V2_AMOUNT = '250000';

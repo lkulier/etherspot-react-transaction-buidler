@@ -1,4 +1,4 @@
-import { ethers } from 'ethers';
+import { BigNumber, ethers } from 'ethers';
 
 import { TRANSACTION_BLOCK_TYPE } from '../constants/transactionBuilderConstants';
 import { IAssetBridgeTransactionBlockValues } from '../components/TransactionBlock/AssetBridgeTransactionBlock';
@@ -8,11 +8,10 @@ import { nativeAssetPerChainId } from './chain';
 import { ITransactionBlock } from '../types/transactionBlock';
 import { IKlimaStakingTransactionBlockValues } from '../components/TransactionBlock/KlimaStakingTransactionBlock';
 import { IPlrDaoTransactionBlockValues } from '../components/TransactionBlock/PlrDaoStakingTransactionBlock';
-import {
-  IPlrStakingV2BlockValues,
-  MIN_PLR_STAKE_V2_AMOUNT,
-} from '../components/TransactionBlock/PlrStakingV2TransactionBlock';
-import { demoPlrStakedAssetEthereumMainnet } from './asset';
+import { IPlrStakingV2BlockValues } from '../components/TransactionBlock/PlrStakingV2TransactionBlock';
+import { demoPlrEthereumMainnet, demoPlrStakedAssetEthereumMainnet } from './asset';
+import { formatAmountDisplay } from './common';
+import { MAX_PLR_STAKE_V2_AMOUNT, MIN_PLR_STAKE_V2_AMOUNT } from '../constants/assetConstants';
 
 export const isValidEthereumAddress = (address: string | undefined): boolean => {
   if (!address) return false;
@@ -26,10 +25,40 @@ export const isValidEthereumAddress = (address: string | undefined): boolean => 
   return false;
 };
 
+export const isCaseInsensitiveMatch = (a: string | undefined, b: string | undefined): boolean => {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  return a.toLowerCase() === b.toLowerCase();
+};
+
+export const addressesEqual = (address1: string | undefined | null, address2: string | undefined | null): boolean => {
+  if (address1 === address2) return true;
+  if (!address1 || !address2) return false;
+
+  return isCaseInsensitiveMatch(address1, address2);
+};
+
 export const isValidAmount = (amount?: string): boolean => {
   if (!amount) return false;
   if (+amount <= 0) return false;
   return !isNaN(+amount);
+}
+
+export const isInvalidStakingV2Amount = (
+  amount: string,
+  decimals: number,
+  stakedAmount: BigNumber,
+): string | undefined => {
+  const maxAmountBN = ethers.utils.parseUnits(MAX_PLR_STAKE_V2_AMOUNT, decimals);
+  const minAmountBN = ethers.utils.parseUnits(MIN_PLR_STAKE_V2_AMOUNT, decimals);
+  const amountBN = ethers.utils.parseUnits(amount, decimals);
+  if (amountBN.lt(minAmountBN)) {
+    return `Min. stake amount is ${formatAmountDisplay(MIN_PLR_STAKE_V2_AMOUNT)} PLR`;
+  }
+
+  if (amountBN.gt(maxAmountBN.sub(stakedAmount))) {
+    return `Max. staked amount can be ${formatAmountDisplay(MAX_PLR_STAKE_V2_AMOUNT)} PLR`;
+  }
 }
 
 export interface ErrorMessages {
@@ -98,15 +127,21 @@ export const validateTransactionBlockValues = (
 
   if (transactionBlock.type === TRANSACTION_BLOCK_TYPE.PLR_STAKING_V2) {
     const transactionBlockValues: IPlrStakingV2BlockValues | undefined = transactionBlock.values;
+
+    if (transactionBlockValues?.amount
+      && isValidAmount(transactionBlockValues?.amount)
+      && transactionBlockValues?.fromAsset
+      && addressesEqual(transactionBlockValues?.fromAsset?.address, demoPlrEthereumMainnet.address)
+      && addressesEqual(transactionBlockValues?.toAsset?.address, demoPlrStakedAssetEthereumMainnet.address)) {
+      const decimals = transactionBlockValues.fromAsset.decimals;
+      const stakedAmountBN = transactionBlockValues?.stakedAmount ?? ethers.BigNumber.from(0);
+      const errorMessage = isInvalidStakingV2Amount(transactionBlockValues.amount, decimals, stakedAmountBN);
+      if (errorMessage) errors.amount = errorMessage;
+    }
+
     if (!transactionBlockValues?.fromChain) errors.fromChain = 'No source chain selected!';
     if (!transactionBlockValues?.toChain) errors.toChain = 'No destination chain selected!';
     if (!isValidAmount(transactionBlockValues?.amount)) errors.amount = 'Incorrect asset amount!';
-    if (transactionBlockValues?.amount
-      && isValidAmount(transactionBlockValues?.amount)
-      && addressesEqual(transactionBlockValues?.toAsset?.address, demoPlrStakedAssetEthereumMainnet.address)
-      && +transactionBlockValues.amount < +MIN_PLR_STAKE_V2_AMOUNT) {
-      errors.amount = `Minimum amount: ${MIN_PLR_STAKE_V2_AMOUNT} PLR!`;
-    }
     if (!transactionBlockValues?.fromAsset) errors.fromAsset = 'Invalid source asset selected!';
     if (!transactionBlockValues?.toAsset) errors.toAsset = 'Invalid destination asset selected!';
     if (transactionBlockValues?.swap?.type === 'CROSS_CHAIN_SWAP' && !transactionBlockValues?.swap?.route) {
@@ -123,20 +158,6 @@ export const validateTransactionBlockValues = (
 
   return errors;
 }
-
-export const isCaseInsensitiveMatch = (a: string | undefined, b: string | undefined): boolean => {
-  if (a === b) return true;
-  if (!a || !b) return false;
-  return a.toLowerCase() === b.toLowerCase();
-};
-
-
-export const addressesEqual = (address1: string | undefined | null, address2: string | undefined | null): boolean => {
-  if (address1 === address2) return true;
-  if (!address1 || !address2) return false;
-
-  return isCaseInsensitiveMatch(address1, address2);
-};
 
 const zeroAddressConstants = [
   ethers.constants.AddressZero,

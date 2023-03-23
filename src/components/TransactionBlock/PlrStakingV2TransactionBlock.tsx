@@ -23,7 +23,12 @@ import { IAssetWithBalance } from '../../providers/EtherspotContextProvider';
 
 // utils
 import { formatAmountDisplay, formatMaxAmount, formatAssetAmountInput } from '../../utils/common';
-import { addressesEqual, isValidEthereumAddress, isValidAmount } from '../../utils/validation';
+import {
+  addressesEqual,
+  isValidEthereumAddress,
+  isValidAmount,
+  isInvalidStakingV2Amount,
+} from '../../utils/validation';
 import { Chain, supportedChains, CHAIN_ID } from '../../utils/chain';
 import { swapServiceIdToDetails } from '../../utils/swap';
 import { Theme } from '../../utils/theme';
@@ -38,6 +43,7 @@ import {
 import {
   PLR_ADDRESS_PER_CHAIN,
   DEMO_PLR_ADDRESS_ETHEREUM_MAINNET,
+  MIN_PLR_STAKE_V2_AMOUNT,
 } from '../../constants/assetConstants';
 
 // services
@@ -64,6 +70,7 @@ export interface IPlrStakingV2BlockValues {
   amount?: string;
   accountType?: string;
   receiverAddress?: string;
+  stakedAmount?: BigNumber;
 }
 
 const Title = styled.h3`
@@ -136,9 +143,9 @@ interface IPlrBalancePerChain { [chainId: string]: BigNumber | undefined }
 
 interface IStakedAmountPerAddress { [address: string]: BigNumber | undefined }
 
-export const MIN_PLR_STAKE_V2_AMOUNT = '10000';
-
 const chainIdsWithPlrTokens = [CHAIN_ID.ETHEREUM_MAINNET, CHAIN_ID.BINANCE, CHAIN_ID.XDAI, CHAIN_ID.POLYGON];
+
+let computingContractAccount: Promise<any> | undefined;
 
 const isEnoughPlrBalanceToStake = (
   plrBalance: BigNumber | undefined,
@@ -243,10 +250,8 @@ const PlrStakingV2TransactionBlock = ({
     accountAddress,
   ]);
 
-  const isFromPlrOnEthereumMainnetSelected = addressesEqual(
-    selectedFromAsset?.address,
-    DEMO_PLR_ADDRESS_ETHEREUM_MAINNET,
-  );
+  const isFromPlrOnEthereumMainnetSelected = selectedFromNetwork?.chainId === CHAIN_ID.ETHEREUM_MAINNET
+    && addressesEqual(selectedFromAsset?.address, DEMO_PLR_ADDRESS_ETHEREUM_MAINNET);
 
   useEffect(() => {
     if (addressesEqual(selectedToAsset?.address, demoPlrStakedAssetEthereumMainnet.address)
@@ -394,11 +399,16 @@ const PlrStakingV2TransactionBlock = ({
       || !selectedToNetwork
       || (selectedToNetwork?.chainId !== selectedFromNetwork?.chainId)
       || !isValidAmount(amount)
+      || computingContractAccount
     ) return;
 
     try {
       // needed computed account address before calling getExchangeOffers
-      if (!accountAddress) await sdk.computeContractAccount();
+      if (!accountAddress) computingContractAccount = sdk.computeContractAccount();
+      if (computingContractAccount) {
+        await computingContractAccount;
+        computingContractAccount = undefined;
+      }
 
       return sdk.getExchangeOffers({
         fromChainId: selectedToNetwork.chainId,
@@ -440,12 +450,19 @@ const PlrStakingV2TransactionBlock = ({
     return () => { proceedUpdate = false };
   }, [getAvailableOffers]);
 
+  const selectedAccountAddress = selectedAccountType === AccountTypes.Contract ? accountAddress : providerAddress;
+  const stakedAmountBN = stakedAmountPerAddress[selectedAccountAddress as string] ?? ethers.BigNumber.from(0);
+
   const onAmountChange = useCallback((newAmount: string) => {
     resetTransactionBlockFieldValidationError(transactionBlockId, 'amount');
     const decimals = selectedToAsset?.decimals ?? 18;
     const updatedAmount = formatAssetAmountInput(newAmount, decimals);
+
+    const errorMessage = isInvalidStakingV2Amount(updatedAmount, decimals, stakedAmountBN);
+    if (errorMessage) setTransactionBlockFieldValidationError(transactionBlockId, 'amount', errorMessage);
+
     setAmount(updatedAmount)
-  }, [selectedFromAsset, selectedToAsset]);
+  }, [ selectedFromAsset, selectedToAsset]);
 
   useEffect(() => {
     let swap: IPlrStakingV2BlockSwap | undefined;
@@ -473,6 +490,7 @@ const PlrStakingV2TransactionBlock = ({
         toAsset: selectedToAsset ?? undefined,
         receiverAddress: receiverAddress ?? undefined,
         accountType: selectedAccountType,
+        stakedAmount: stakedAmountBN,
         amount,
         swap,
       },
@@ -623,7 +641,9 @@ const PlrStakingV2TransactionBlock = ({
               {!hasEnoughPlrToStake && (
                 <>
                   You need a minimum of
-                  &nbsp;<Highlighted color={theme.color?.text?.blockParagraphHighlight}>10,000 PLR</Highlighted>
+                  <Highlighted color={theme.color?.text?.blockParagraphHighlight}>
+                    &nbsp;{formatAmountDisplay(MIN_PLR_STAKE_V2_AMOUNT)} PLR
+                  </Highlighted>
                   &nbsp;tokens on Ethereum, swap more assets to PLR on Ethereum Mainnet.
                 </>
               )}
@@ -757,7 +777,7 @@ const PlrStakingV2TransactionBlock = ({
         selectedNetwork={selectedFromNetwork}
         selectedAsset={selectedFromAsset}
         errorMessage={errorMessages?.fromChain || errorMessages?.fromAsset}
-        walletAddress={selectedAccountType === AccountTypes.Contract ? accountAddress : providerAddress}
+        walletAddress={selectedAccountAddress}
         hideChainIds={[CHAIN_ID.AVALANCHE]}
         showPositiveBalanceAssets
         showQuickInputButtons
@@ -787,7 +807,7 @@ const PlrStakingV2TransactionBlock = ({
             ? [{ chainId: selectedFromNetwork.chainId, address: selectedFromAsset.address }]
             : undefined
         }
-        walletAddress={selectedAccountType === AccountTypes.Contract ? accountAddress : providerAddress}
+        walletAddress={selectedAccountAddress}
         accountType={selectedAccountType}
       />
       {!!selectedFromAsset && !!selectedFromNetwork && (
