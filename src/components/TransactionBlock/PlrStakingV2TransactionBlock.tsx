@@ -44,10 +44,12 @@ import {
   PLR_ADDRESS_PER_CHAIN,
   DEMO_PLR_ADDRESS_ETHEREUM_MAINNET,
   MIN_PLR_STAKE_V2_AMOUNT,
+  PLR_ADDRESS_ETHEREUM_MAINNET,
 } from '../../constants/assetConstants';
 
 // services
 import { getStakingV2StakedAmount } from '../../services/contracts';
+import useAssetPriceUsd from '../../hooks/useAssetPriceUsd';
 
 interface ICrossChainSwap {
   type: 'CROSS_CHAIN_SWAP',
@@ -91,6 +93,20 @@ const OfferDetails = styled.div`
   flex-direction: row;
   align-items: center;
   font-family: 'PTRootUIWebMedium', sans-serif;
+`;
+
+const StakingOfferDetailsRowsWrapper = styled.div`
+  padding-top: 2px;
+`;
+const StakingOfferDetailsRow = styled.div`
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin-bottom: 4px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
 `;
 
 const Container = styled.div`
@@ -179,6 +195,7 @@ const PlrStakingV2TransactionBlock = ({
     setAddressPlrBalancePerChain,
   ] = useState<{ [address: string]: IPlrBalancePerChain }>({});
   const [stakedAmountPerAddress, setStakedAmountPerAddress] = useState<IStakedAmountPerAddress>({});
+  const plrPriceUsd = useAssetPriceUsd(CHAIN_ID.ETHEREUM_MAINNET, PLR_ADDRESS_ETHEREUM_MAINNET);
 
   useEffect(() => {
     let shouldUpdate = true;
@@ -458,7 +475,7 @@ const PlrStakingV2TransactionBlock = ({
     const decimals = selectedToAsset?.decimals ?? 18;
     const updatedAmount = formatAssetAmountInput(newAmount, decimals);
 
-    const errorMessage = isInvalidStakingV2Amount(updatedAmount, decimals, stakedAmountBN);
+    const errorMessage = isStakingAssetSelected && isInvalidStakingV2Amount(updatedAmount, decimals, stakedAmountBN);
     if (errorMessage) setTransactionBlockFieldValidationError(transactionBlockId, 'amount', errorMessage);
 
     setAmount(updatedAmount)
@@ -630,6 +647,8 @@ const PlrStakingV2TransactionBlock = ({
     || !selectedFromAsset
     || isStakingAssetSelected
     || shouldOfferSwapToPlrOnEthereumMainnet;
+
+  const stakeAssetOfferOption = { title: 'stkPLR', value: demoPlrStakedAssetEthereumMainnet.address };
 
   return (
     <>
@@ -847,14 +866,15 @@ const PlrStakingV2TransactionBlock = ({
           hideKeyBased={smartWalletOnly}
         />
       </WalletReceiveWrapper>
-      {!isStakingAssetSelected
-        && !!selectedToAsset
+      {!!selectedToAsset
         && !!selectedFromAsset
         && !!amount
+        && !!selectedFromNetwork
+        && !!selectedToNetwork
         && (remainingSelectedFromAssetBalance ?? 0) >= 0
         && (
           <>
-            {selectedFromNetwork?.chainId !== selectedToNetwork?.chainId && (
+            {!isStakingAssetSelected && selectedFromNetwork?.chainId !== selectedToNetwork?.chainId && (
               <SelectInput
                 label="Route"
                 options={availableRoutesOptions ?? []}
@@ -873,7 +893,7 @@ const PlrStakingV2TransactionBlock = ({
                 forceShow={!!availableRoutesOptions?.length && availableRoutesOptions?.length > 1}
               />
             )}
-            {selectedFromNetwork?.chainId === selectedToNetwork?.chainId && (
+            {!isStakingAssetSelected && selectedFromNetwork?.chainId === selectedToNetwork?.chainId && (
               <SelectInput
                 label="Offer"
                 options={availableOffersOptions ?? []}
@@ -890,6 +910,37 @@ const PlrStakingV2TransactionBlock = ({
                 errorMessage={errorMessages?.offer}
                 noOpen={!!selectedOffer && availableOffersOptions?.length === 1}
                 forceShow={!!availableOffersOptions?.length && availableOffersOptions?.length > 1}
+              />
+            )}
+            {isStakingAssetSelected && selectedFromNetwork?.chainId === selectedToNetwork?.chainId && (
+              <SelectInput
+                label="Offer"
+                options={[stakeAssetOfferOption]}
+                selectedOption={stakeAssetOfferOption}
+                renderSelectedOptionContent={() => (
+                  <OfferDetails>
+                    <CombinedRoundedImages
+                      title={selectedFromAsset.name}
+                      url={selectedFromAsset.logoURI}
+                      smallImageTitle={selectedFromNetwork.title}
+                      smallImageUrl={selectedFromNetwork.iconUrl}
+                      size={24}
+                    />
+                    <StakingOfferDetailsRowsWrapper>
+                      <StakingOfferDetailsRow>
+                        <Text size={14} medium>
+                          {formatAmountDisplay(amount)} stkPLR {plrPriceUsd && `· ${formatAmountDisplay(plrPriceUsd, '$', 2)}`}
+                        </Text>
+                        <Text size={14} marginLeft={6} color={theme?.color?.text?.innerLabel} inline medium>
+                          on Ethereum
+                        </Text>
+                      </StakingOfferDetailsRow>
+                    </StakingOfferDetailsRowsWrapper>
+                  </OfferDetails>
+                )}
+                placeholder="Select offer"
+                errorMessage={errorMessages?.offer}
+                noOpen
               />
             )}
           </>
