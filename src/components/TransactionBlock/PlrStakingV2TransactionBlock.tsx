@@ -196,6 +196,7 @@ const PlrStakingV2TransactionBlock = ({
   ] = useState<{ [address: string]: IPlrBalancePerChain }>({});
   const [stakedAmountPerAddress, setStakedAmountPerAddress] = useState<IStakedAmountPerAddress>({});
   const plrPriceUsd = useAssetPriceUsd(CHAIN_ID.ETHEREUM_MAINNET, PLR_ADDRESS_ETHEREUM_MAINNET);
+  const [isWrongStakingAmount, setIsWrongStakingAmount] = useState<boolean>(false);
 
   useEffect(() => {
     let shouldUpdate = true;
@@ -474,11 +475,18 @@ const PlrStakingV2TransactionBlock = ({
     resetTransactionBlockFieldValidationError(transactionBlockId, 'amount');
     const decimals = selectedToAsset?.decimals ?? 18;
     const updatedAmount = formatAssetAmountInput(newAmount, decimals);
-
-    const errorMessage = isStakingAssetSelected && isInvalidStakingV2Amount(updatedAmount, decimals, stakedAmountBN);
-    if (errorMessage) setTransactionBlockFieldValidationError(transactionBlockId, 'amount', errorMessage);
-
     setAmount(updatedAmount)
+
+    setIsWrongStakingAmount(false);
+
+    const errorMessage = isStakingAssetSelected && updatedAmount
+      ? isInvalidStakingV2Amount(updatedAmount, decimals, stakedAmountBN)
+      : undefined;
+
+    if (errorMessage) {
+      setTransactionBlockFieldValidationError(transactionBlockId, 'amount', errorMessage);
+      setIsWrongStakingAmount(true);
+    }
   }, [ selectedFromAsset, selectedToAsset]);
 
   useEffect(() => {
@@ -912,37 +920,40 @@ const PlrStakingV2TransactionBlock = ({
                 forceShow={!!availableOffersOptions?.length && availableOffersOptions?.length > 1}
               />
             )}
-            {isStakingAssetSelected && selectedFromNetwork?.chainId === selectedToNetwork?.chainId && (
-              <SelectInput
-                label="Offer"
-                options={[stakeAssetOfferOption]}
-                selectedOption={stakeAssetOfferOption}
-                renderSelectedOptionContent={() => (
-                  <OfferDetails>
-                    <CombinedRoundedImages
-                      title={selectedFromAsset.name}
-                      url={selectedFromAsset.logoURI}
-                      smallImageTitle={selectedFromNetwork.title}
-                      smallImageUrl={selectedFromNetwork.iconUrl}
-                      size={24}
-                    />
-                    <StakingOfferDetailsRowsWrapper>
-                      <StakingOfferDetailsRow>
-                        <Text size={14} medium>
-                          {formatAmountDisplay(amount)} stkPLR {plrPriceUsd && `· ${formatAmountDisplay(plrPriceUsd, '$', 2)}`}
-                        </Text>
-                        <Text size={14} marginLeft={6} color={theme?.color?.text?.innerLabel} inline medium>
-                          on Ethereum
-                        </Text>
-                      </StakingOfferDetailsRow>
-                    </StakingOfferDetailsRowsWrapper>
-                  </OfferDetails>
-                )}
-                placeholder="Select offer"
-                errorMessage={errorMessages?.offer}
-                noOpen
-              />
-            )}
+            {!isWrongStakingAmount
+              && isStakingAssetSelected
+              && selectedFromNetwork?.chainId === selectedToNetwork?.chainId
+              && (
+                <SelectInput
+                  label="Offer"
+                  options={[stakeAssetOfferOption]}
+                  selectedOption={stakeAssetOfferOption}
+                  renderSelectedOptionContent={() => (
+                    <OfferDetails>
+                      <CombinedRoundedImages
+                        title={selectedFromAsset.name}
+                        url={selectedFromAsset.logoURI}
+                        smallImageTitle={selectedFromNetwork.title}
+                        smallImageUrl={selectedFromNetwork.iconUrl}
+                        size={24}
+                      />
+                      <StakingOfferDetailsRowsWrapper>
+                        <StakingOfferDetailsRow>
+                          <Text size={14} medium>
+                            {formatAmountDisplay(amount)} stkPLR {plrPriceUsd && `· ${formatAmountDisplay(plrPriceUsd, '$', 2)}`}
+                          </Text>
+                          <Text size={14} marginLeft={6} color={theme?.color?.text?.innerLabel} inline medium>
+                            on Ethereum
+                          </Text>
+                        </StakingOfferDetailsRow>
+                      </StakingOfferDetailsRowsWrapper>
+                    </OfferDetails>
+                  )}
+                  placeholder="Select offer"
+                  errorMessage={errorMessages?.offer}
+                  noOpen
+                />
+              )}
           </>
         )}
     </>
