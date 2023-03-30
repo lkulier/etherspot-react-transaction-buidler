@@ -711,13 +711,10 @@ const PlrStakingV2TransactionBlock = ({
               {supportedChains
                 .filter((chain) => chainIdsWithPlrTokens.includes(chain.chainId))
                 .map((chain) => {
-                  const [
-                    plrOnKeyBased,
-                    plrOnSmartWallet,
-                  ] = [providerAddress, accountAddress].map((address) => {
+                  const [plrOnKeyBased, plrOnSmartWallet] = [providerAddress, accountAddress].map((address) => {
                     if (!address || !addressPlrBalancePerChain?.[address]?.[chain.chainId]) return;
 
-                    const plrBalance = addressPlrBalancePerChain[address][chain.chainId] ;
+                    const plrBalance = addressPlrBalancePerChain[address][chain.chainId];
                     if (!plrBalance) return;
 
                     // color only for ethereum mainnet lines
@@ -737,36 +734,21 @@ const PlrStakingV2TransactionBlock = ({
                   return (
                     <>
                       {plrOnKeyBased && (
-                        <Text
-                          size={12}
-                          marginTop={4}
-                          color={plrOnKeyBased.textColor}
-                          block
-                        >
+                        <Text size={12} marginTop={4} color={plrOnKeyBased.textColor} block>
                           • {plrOnKeyBased.amount} PLR on {chain.title} on Key Based
                         </Text>
                       )}
                       {plrOnSmartWallet && (
-                        <Text
-                          size={12}
-                          marginTop={4}
-                          color={plrOnSmartWallet.textColor}
-                          block
-                        >
+                        <Text size={12} marginTop={4} color={plrOnSmartWallet.textColor} block>
                           • {plrOnSmartWallet.amount} PLR on {chain.title} on Smart Wallet
                         </Text>
                       )}
                     </>
                   );
-                })
-              }
+                })}
             </>
           )}
-          {plrTokensSum === 0 && (
-            <Text size={14}>
-              You have 0 PLR tokens.
-            </Text>
-          )}
+          {plrTokensSum === 0 && <Text size={14}>You have 0 PLR tokens.</Text>}
         </Container>
       </ContainerWrapper>
       <AccountSwitchInput
@@ -854,6 +836,7 @@ const PlrStakingV2TransactionBlock = ({
               smallImageUrl={selectedFromNetwork.iconUrl}
               title={selectedFromAsset.symbol}
               smallImageTitle={selectedFromNetwork.title}
+              borderColor={theme?.color?.background?.textInput}
             />
           }
           inputTopRightComponent={

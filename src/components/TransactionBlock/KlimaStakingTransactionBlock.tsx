@@ -89,11 +89,19 @@ const OfferDetails = styled.div`
   font-family: 'PTRootUIWebMedium', sans-serif;
 `;
 
-const mapRouteToOption = (route: BridgingQuote) => {
+const OfferGasPriceContainer = styled.div`
+  display: flex;
+  justify-content: flex-start;
+  gap: 1rem;
+  align-items: flex-end;
+`;
+
+const mapRouteToOption = (route: BridgingQuote): SelectOption => {
   return {
     title: bridgeServiceIdToDetails['lifi'].title,
     value: route.estimate.toAmount,
     iconUrl: bridgeServiceIdToDetails['lifi'].iconUrl,
+    extension: route.estimate.gasCosts.amountUSD,
   };
 };
 
@@ -247,7 +255,7 @@ const KlimaStakingTransactionBlock = ({
     setIsRouteFetching(true);
 
     if (selectedFromAsset?.assetPriceUsd) {
-      if(+amount * selectedFromAsset.assetPriceUsd < 0.4) {
+      if (+amount * selectedFromAsset.assetPriceUsd < 0.4) {
         setTransactionBlockFieldValidationError(
           transactionBlockId,
           'amount',
@@ -273,7 +281,7 @@ const KlimaStakingTransactionBlock = ({
 
       setRouteToUSDC(routeToUsdc.items);
 
-      if(routeToUsdc.items.length === 0) {
+      if (routeToUsdc.items.length === 0) {
         setIsRouteFetching(false);
         resetRoutes();
         return;
@@ -304,7 +312,7 @@ const KlimaStakingTransactionBlock = ({
       resetRoutes();
       setTransactionBlockFieldValidationError(transactionBlockId, 'route', 'Please try with different inputs/amount')
     }
-  }, 200),[
+  }, 200), [
     selectedFromNetwork,
     selectedFromAsset,
     amount,
@@ -321,12 +329,22 @@ const KlimaStakingTransactionBlock = ({
         <Text size={12} marginBottom={2} medium block>
           {option.title}
         </Text>
-        {!!receiveAmount && (
-          <Text size={16} medium>
-            {receiveAmount} {klimaAsset.symbol}
-            {targetAssetPriceUsd && ` · ${formatAmountDisplay(+receiveAmount * targetAssetPriceUsd, '$', 2)}`}
-          </Text>
-        )}
+        <OfferGasPriceContainer>
+          <div>
+            <Text size={12} marginRight={4} color={theme.color?.text?.innerLabel} medium>
+              Gas price:&nbsp;
+            </Text>
+            <Text size={14} marginRight={22} medium inline>
+              {option.extension && `${formatAmountDisplay(option.extension, '$', 2)}`}
+            </Text>
+          </div>
+          {!!receiveAmount && (
+            <Text size={16} medium>
+              {receiveAmount} {klimaAsset.symbol}
+              {targetAssetPriceUsd && ` · ${formatAmountDisplay(+receiveAmount * targetAssetPriceUsd, '$')}`}
+            </Text>
+          )}
+        </OfferGasPriceContainer>
       </div>
     </OfferDetails>
   );
@@ -361,7 +379,12 @@ const KlimaStakingTransactionBlock = ({
         hideChainIds={[CHAIN_ID.POLYGON]}
         selectedNetwork={selectedFromNetwork}
         selectedAsset={selectedFromAsset}
-        errorMessage={errorMessages?.fromChainId || errorMessages?.fromAssetSymbol || errorMessages?.fromAssetAddress || errorMessages?.fromAssetDecimals}
+        errorMessage={
+          errorMessages?.fromChainId ||
+          errorMessages?.fromAssetSymbol ||
+          errorMessages?.fromAssetAddress ||
+          errorMessages?.fromAssetDecimals
+        }
         walletAddress={selectedAccountType === AccountTypes.Contract ? accountAddress : providerAddress}
         showPositiveBalanceAssets
         showQuickInputButtons
@@ -381,13 +404,18 @@ const KlimaStakingTransactionBlock = ({
           onValueChange={onAmountChange}
           value={amount}
           placeholder="0"
-          inputBottomText={selectedFromAsset?.assetPriceUsd && amount ? `${formatAmountDisplay(+amount * selectedFromAsset.assetPriceUsd, '$')}` : undefined}
+          inputBottomText={
+            selectedFromAsset?.assetPriceUsd && amount
+              ? `${formatAmountDisplay(+amount * selectedFromAsset.assetPriceUsd, '$')}`
+              : undefined
+          }
           inputLeftComponent={
             <CombinedRoundedImages
               url={selectedFromAsset.logoURI}
               smallImageUrl={selectedFromNetwork.iconUrl}
               title={selectedFromAsset.symbol}
               smallImageTitle={selectedFromNetwork.title}
+              borderColor={theme?.color?.background?.textInput}
             />
           }
           inputTopRightComponent={
@@ -434,7 +462,7 @@ const KlimaStakingTransactionBlock = ({
       {!!selectedFromAsset && !!amount && (remainingSelectedFromAssetBalance ?? 0) >= 0 && (
         <SelectInput
           label={`Offer`}
-          options={ selectedRoute ? [selectedRoute] : []}
+          options={selectedRoute ? [selectedRoute] : []}
           isLoading={isRouteFetching}
           selectedOption={selectedRoute}
           renderOptionListItemContent={renderOption}

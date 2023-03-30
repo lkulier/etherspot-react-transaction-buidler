@@ -1,6 +1,6 @@
 import React, { createContext } from 'react';
 import { Sdk as EtherspotSdk } from 'etherspot/dist/sdk/sdk';
-import { AccountBalance, NftCollection, WalletProviderLike, Web3WalletProvider } from 'etherspot';
+import { AccountBalance, ENSNode, NftCollection, WalletProviderLike, Web3WalletProvider } from 'etherspot';
 
 import {
   IAssetWithBalance,
@@ -38,6 +38,7 @@ export interface EtherspotContextData {
     loadSmartWalletBalancesByChain: (walletAddress: string, supportedChains: Chain[]) => Promise<void>;
     loadKeyBasedWalletBalancesPerChain: (walletAddress: string, supportedChains: Chain[]) => Promise<void>;
     getNftsForChainId: (chainId: number, address?: string | null, recompute?: boolean) => Promise<NftCollection[]>;
+    getEnsNode: (chainId: number, address?: string | null, recompute?: boolean) => Promise<ENSNode | null>;
     web3Provider: WalletProviderLike | Web3WalletProvider | null;
     totalWorthPerAddress: ITotalWorthPerAddress;
     logout: () => void;
@@ -46,6 +47,7 @@ export interface EtherspotContextData {
     setKeyBasedWalletBalanceByChain: React.Dispatch<React.SetStateAction<IBalanceByChain[]>>;
     getGasAssetsForChainId: (chainId: number, sender?: string) => Promise<IAssetWithBalance[]>;
     updateWalletBalances: (force?: boolean) => void;
+    getRatesByNativeChainId: (chainId: number) => Promise<number | null>;
   };
 }
 

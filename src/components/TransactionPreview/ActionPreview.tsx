@@ -18,7 +18,7 @@ import {
   getTransactionExplorerLink,
   isERC20ApprovalTransactionData,
 } from "../../utils/transaction";
-import { formatAmountDisplay, humanizeHexString } from "../../utils/common";
+import { formatAmountDisplay, humanizeHexString, copyToClipboard } from '../../utils/common';
 import { Chain, CHAIN_ID, nativeAssetPerChainId, supportedChains } from "../../utils/chain";
 import { Theme } from "../../utils/theme";
 
@@ -502,13 +502,6 @@ const ActionPreview = ({
     }
   }, [isSubmitted, timer]);
 
-  const onCopy = (valueToCopy: string) => {
-      navigator.clipboard.writeText(valueToCopy).then((res) => {
-        alert("Copied!");
-      }).catch((err) => {
-        //
-      });
-  };
 
 	const onEditButtonClick = () => {
 		if (editButtonDisabled || !onEdit) return;
@@ -622,13 +615,13 @@ const ActionPreview = ({
 						<Text size={16} medium>
 							<>
 								From &nbsp;
-								<ClickableText onClick={() => onCopy(senderAddress)}>
+								<ClickableText onClick={() => copyToClipboard(senderAddress)}>
 									{humanizeHexString(senderAddress)}
 								</ClickableText>
 								&nbsp;
 							</>
 							to &nbsp;
-							<ClickableText onClick={() => onCopy(receiverAddress)}>
+							<ClickableText onClick={() => copyToClipboard(receiverAddress)}>
 								{humanizeHexString(receiverAddress)}
 							</ClickableText>
 						</Text>
@@ -743,13 +736,13 @@ const ActionPreview = ({
             <Text size={16} medium>
               <>
                 From &nbsp;
-                <ClickableText onClick={() => onCopy(senderAddress)}>
+                <ClickableText onClick={() => copyToClipboard(senderAddress)}>
                   {humanizeHexString(senderAddress)}
                 </ClickableText>
                 &nbsp;
               </>
               to &nbsp;
-              <ClickableText onClick={() => onCopy(receiverAddress)}>
+              <ClickableText onClick={() => copyToClipboard(receiverAddress)}>
                 {humanizeHexString(receiverAddress)}
               </ClickableText>
             </Text>
@@ -811,7 +804,7 @@ const ActionPreview = ({
               {!!fromAddress && (
                 <>
                   From &nbsp;
-                  <ClickableText onClick={() => onCopy(fromAddress)}>
+                  <ClickableText onClick={() => copyToClipboard(fromAddress)}>
                     {humanizeHexString(fromAddress)}
                   </ClickableText>
                   &nbsp;
@@ -819,7 +812,7 @@ const ActionPreview = ({
               )}
               {fromAddress ? "to" : "To"}
               &nbsp;
-              <ClickableText onClick={() => onCopy(receiverAddress)}>
+              <ClickableText onClick={() => copyToClipboard(receiverAddress)}>
                 {humanizeHexString(receiverAddress)}
               </ClickableText>
             </Text>
@@ -882,13 +875,24 @@ const ActionPreview = ({
   }
 
   if (type === TRANSACTION_BLOCK_TYPE.PLR_DAO_STAKE) {
-    const { fromAsset, fromChainId, toAsset, providerName, providerIconUrl, receiverAddress, isPolygonAccountWithEnoughPLR, enableAssetSwap} = preview;
+    const {
+      fromAsset,
+      fromChainId,
+      toAsset,
+      providerName,
+      providerIconUrl,
+      receiverAddress,
+      enableAssetSwap,
+      enableAssetBridge,
+    } = preview;
 
     const previewList = crossChainAction?.batchTransactions?.length
       ? crossChainAction?.batchTransactions.map((action) =>
           action.type === TRANSACTION_BLOCK_TYPE.PLR_DAO_STAKE ? action.preview : null
         )
       : [crossChainAction.preview];
+
+    const enablePlrStaking = !enableAssetSwap && !enableAssetBridge;
 
     const fromNetwork = supportedChains.find((supportedChain) => supportedChain.chainId === fromChainId);
 
@@ -899,7 +903,7 @@ const ActionPreview = ({
     const fromChainTitle = fromNetwork?.title ?? CHAIN_ID_TO_NETWORK_NAME[fromChainId].toUpperCase();
 
     const fromAmount = formatAmountDisplay(ethers.utils.formatUnits(fromAsset.amount, fromAsset.decimals));
-    const toAmount = formatAmountDisplay(ethers.utils.formatUnits(toAsset.amount));
+    const toAmount = enablePlrStaking ? toAsset.amount : formatAmountDisplay(ethers.utils.formatUnits(toAsset.amount));
 
     const senderAddress = crossChainAction.useWeb3Provider ? providerAddress : accountAddress;
     const timeStamp = crossChainAction.transactions[crossChainAction.transactions.length - 1].createTimestamp;
@@ -912,7 +916,7 @@ const ActionPreview = ({
         showCloseButton={showCloseButton}
         additionalTopButtons={additionalTopButtons}
       >
-        {isPolygonAccountWithEnoughPLR ? (
+        {enablePlrStaking ? (
           <>
             <DoubleTransactionActionsInSingleRow>
               <TransactionAction>
@@ -955,13 +959,13 @@ const ActionPreview = ({
                 <Text size={16} medium>
                   <>
                     From &nbsp;
-                    <ClickableText onClick={() => onCopy(senderAddress)}>
+                    <ClickableText onClick={() => copyToClipboard(senderAddress)}>
                       {humanizeHexString(senderAddress)}
                     </ClickableText>
                     &nbsp;
                   </>
                   to &nbsp;
-                  <ClickableText onClick={() => onCopy(receiverAddress)}>
+                  <ClickableText onClick={() => copyToClipboard(receiverAddress)}>
                     {humanizeHexString(receiverAddress)}
                   </ClickableText>
                 </Text>
@@ -1016,18 +1020,22 @@ const ActionPreview = ({
           </>
         )}
         <TransactionAction>
-          <ColoredText>Route</ColoredText>
-          <ValueWrapper>
-            <RoundedImage title={providerName ?? 'Unknown'} url={providerIconUrl} />
-            <ValueBlock>
-              <Text size={12} marginBottom={2} medium block>
-                {providerName}
-              </Text>
-              <Text size={16} medium>
-                {toAmount} {toAsset.symbol}{' '}
-              </Text>
-            </ValueBlock>
-          </ValueWrapper>
+          {(enableAssetSwap || enableAssetBridge) && (
+            <>
+              <ColoredText>Route</ColoredText>
+              <ValueWrapper>
+                <RoundedImage title={providerName ?? 'Unknown'} url={providerIconUrl} />
+                <ValueBlock>
+                  <Text size={12} marginBottom={2} medium block>
+                    {providerName}
+                  </Text>
+                  <Text size={16} medium>
+                    {toAmount} {toAsset.symbol}{' '}
+                  </Text>
+                </ValueBlock>
+              </ValueWrapper>
+            </>
+          )}
           <ValueWrapper>
             {!!cost && (
               <>
@@ -1053,7 +1061,12 @@ const ActionPreview = ({
                 const toAmount = formatAmountDisplay(ethers.utils.formatUnits(toAsset.amount, toAsset.decimals));
                 return (
                   <Row>
-                    <RoundedImage style={{ marginTop: 2 }} title={providerName} url={providerIconUrl} size={10} />
+                    <RoundedImage
+                      style={{ marginTop: 2 }}
+                      title={providerName ?? 'Unknown'}
+                      url={providerIconUrl}
+                      size={10}
+                    />
                     <ValueBlock>
                       <Text size={12} marginBottom={2} regular block>
                         {`Swap on ${fromChainTitle} via ${providerName}`}
@@ -1309,13 +1322,13 @@ const ActionPreview = ({
             <Text size={16} medium>
               <>
                 From &nbsp;
-                <ClickableText onClick={() => onCopy(senderAddress)}>
+                <ClickableText onClick={() => copyToClipboard(senderAddress)}>
                   {humanizeHexString(senderAddress)}
                 </ClickableText>
                 &nbsp;
               </>
               to &nbsp;
-              <ClickableText onClick={() => onCopy(receiverAddress)}>
+              <ClickableText onClick={() => copyToClipboard(receiverAddress)}>
                 {humanizeHexString(receiverAddress)}
               </ClickableText>
             </Text>

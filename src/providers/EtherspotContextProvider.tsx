@@ -10,6 +10,7 @@ import {
   RateData,
   NftCollection,
   WalletConnectWalletProvider,
+  ENSNode,
 } from 'etherspot';
 import { CHAIN_ID_TO_NETWORK_NAME } from 'etherspot/dist/sdk/network/constants';
 import { BigNumber, ethers } from 'ethers';
@@ -20,7 +21,7 @@ import { TokenListToken } from 'etherspot/dist/sdk/assets/classes/token-list-tok
 import { addressesEqual, isCaseInsensitiveMatch, isNativeAssetAddress, isZeroAddress } from '../utils/validation';
 import { sessionStorageInstance } from '../services/etherspot';
 import { sumAssetsBalanceWorth } from '../utils/common';
-import { demoPlrEthereumMainnet } from '../utils/asset';
+import { demoPlrEthereumMainnet, testPlrDaoAsset } from '../utils/asset';
 
 export type IAsset = TokenListToken;
 
@@ -44,7 +45,7 @@ let sdkPerChain: { [chainId: number]: EtherspotSdk } = {};
 let supportedAssetsPerChainId: { [chainId: number]: IAsset[] } = {};
 let gasTokenAddressesPerChainId: { [chainId: number]: string[] } = {};
 
-interface IWalletConnectProvider <T>{
+interface IWalletConnectProvider<T> {
   isWalletConnect?: boolean;
 }
 
@@ -226,9 +227,10 @@ const EtherspotContextProvider = ({
       const hasNativeAsset = assets.some(
         (asset) => !asset.address || addressesEqual(asset.address, nativeAssetPerChainId[chainId]?.address)
       );
-
-      supportedAssetsPerChainId[assetsChainId] = hasNativeAsset || !nativeAsset ? assets : [nativeAsset, ...assets];
-
+      // TODO: to be added back when DKU token is no longer needed. This is for the DKU testing.
+      // supportedAssetsPerChainId[assetsChainId] = hasNativeAsset || !nativeAsset ? assets : [nativeAsset, ...assets];
+      supportedAssetsPerChainId[assetsChainId] =
+        hasNativeAsset || !nativeAsset ? assets : [nativeAsset, ...assets, testPlrDaoAsset];
       return supportedAssetsPerChainId[assetsChainId];
     },
     [sdk]
@@ -329,7 +331,7 @@ const EtherspotContextProvider = ({
 
             balanceWorthUsd = assetPriceUsd
               ? // isZero check to avoid underflow
-              +ethers.utils.formatUnits(balance, asset.decimals) * assetPriceUsd
+                +ethers.utils.formatUnits(balance, asset.decimals) * assetPriceUsd
               : null;
           } catch (e) {
             //
@@ -515,6 +517,43 @@ const EtherspotContextProvider = ({
     [sdk, accountAddress]
   );
 
+  // get ENS Node
+  const getEnsNode = useCallback(
+    async (
+      chainId: number,
+      address: string | null = accountAddress,
+      recompute: boolean = true
+    ): Promise<ENSNode | null> => {
+      const sdkForChain = getSdkForChainId(chainId);
+
+      if (!sdkForChain) return null;
+
+      let computedAccount;
+
+      if (!address && recompute) {
+        try {
+          computedAccount = await connect();
+        } catch (e) {
+          //
+        }
+      }
+
+      if (!address && !computedAccount) return null;
+
+      try {
+        const ens = await sdkForChain.getENSNode({
+          nameOrHashOrAddress: address || computedAccount,
+        });
+        return ens;
+      } catch (e) {
+        //
+      }
+
+      return null;
+    },
+    [sdk, accountAddress]
+  );
+
   const logout = useCallback(() => {
     sdkPerChain = {};
     setProvider(null);
@@ -556,6 +595,7 @@ const EtherspotContextProvider = ({
       loadSmartWalletBalancesByChain,
       getSupportedAssetsWithBalancesForChainId,
       getNftsForChainId,
+      getEnsNode,
       providerAddress,
       web3Provider: provider,
       totalWorthPerAddress,
@@ -566,6 +606,7 @@ const EtherspotContextProvider = ({
       loadKeyBasedWalletBalancesPerChain,
       getGasAssetsForChainId,
       updateWalletBalances,
+      getRatesByNativeChainId,
     }),
     [
       connect,
@@ -582,6 +623,7 @@ const EtherspotContextProvider = ({
       loadSmartWalletBalancesByChain,
       getSupportedAssetsWithBalancesForChainId,
       getNftsForChainId,
+      getEnsNode,
       providerAddress,
       provider,
       totalWorthPerAddress,
