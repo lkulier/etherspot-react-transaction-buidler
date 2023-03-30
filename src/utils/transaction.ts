@@ -5,6 +5,7 @@ import {
   ExchangeOffer,
   GatewayTransactionStates,
   LiFiStatus,
+  networkNameToChainId,
   NotificationTypes,
   Sdk as EtherspotSdk,
   TransactionStatuses,
@@ -44,6 +45,7 @@ import {
   POLYGON_USDC_CONTRACT_ADDRESS,
 } from '../constants/assetConstants';
 import { PlrV2StakingContract } from '../types/etherspotContracts';
+import { sessionStorageInstance } from '../services/etherspot';
 
 interface IPillarDao {
   encodeDeposit(amount: BigNumber): {
@@ -1327,8 +1329,6 @@ export const buildCrossChainAction = async (
       multiCallData: transactionBlock?.multiCallData,
     };
 
-    console.log({ crossChainAction })
-
     return { crossChainAction };
   }
 
@@ -1531,8 +1531,20 @@ export const submitWeb3ProviderTransaction = async (
     return { errorMessage: 'Unable to find connected Web3 provider!' };
   }
 
-  // TODO: check against current
-  if (chainId !== 1) {
+  let currentChainId;
+  try {
+    // @ts-ignore
+    const networkName = web3Provider.networkName;
+    currentChainId = networkNameToChainId(networkName);
+  } catch (e) {
+    //
+  }
+
+  if (!currentChainId) {
+    return { errorMessage: 'Unable to find connected Web3 provider chain ID!' };
+  }
+
+  if (chainId !== +currentChainId) {
     const changed = await changeToChain(chainId);
     if (!changed) return { errorMessage: 'Unable to change to selected network!' };
   }
