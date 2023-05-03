@@ -89,9 +89,9 @@ const Container = styled.div`
 `;
 
 const ContainerWrapper = styled.div`
-  background: ${({ theme }) => theme.color.background.blockParagraphBorder};
+  background: ${({ theme }) => theme.color.background.horizontalLine};
   margin: 12px 0 14px 0;
-  padding: 2px;
+  padding: 1px;
   border-radius: 8px;
 `;
 
@@ -103,7 +103,7 @@ const HorizontalLine = styled.div`
   margin: 11px 0;
   width: 100%;
   height: 1px;
-  background: ${({ theme }) => theme.color.background.blockParagraphBorder};
+  background: ${({ theme }) => theme.color.background.horizontalLine};
 `;
 
 const mapOfferToOption = (offer: ExchangeOffer) => {
@@ -556,8 +556,8 @@ const PlrStakingV2TransactionBlock = ({
           <Text size={14}>
             {!hasEnoughPlrToStake && (
               <>
-                You need a minimum of
-                &nbsp;<Highlighted color={theme.color?.text?.blockParagraphHighlight}>10,000 PLR</Highlighted>
+                You need a minimum of &nbsp;
+                <Highlighted color={theme.color?.text?.blockParagraphHighlight}>10,000 PLR</Highlighted>
                 &nbsp;tokens on Ethereum, swap more assets to PLR on Ethereum Mainnet.
               </>
             )}
@@ -582,13 +582,10 @@ const PlrStakingV2TransactionBlock = ({
               {supportedChains
                 .filter((chain) => chainIdsWithPlrTokens.includes(chain.chainId))
                 .map((chain) => {
-                  const [
-                    plrOnKeyBased,
-                    plrOnSmartWallet,
-                  ] = [providerAddress, accountAddress].map((address) => {
+                  const [plrOnKeyBased, plrOnSmartWallet] = [providerAddress, accountAddress].map((address) => {
                     if (!address || !addressPlrBalancePerChain?.[address]?.[chain.chainId]) return;
 
-                    const plrBalance = addressPlrBalancePerChain[address][chain.chainId] ;
+                    const plrBalance = addressPlrBalancePerChain[address][chain.chainId];
                     if (!plrBalance) return;
 
                     // color only for ethereum mainnet lines
@@ -608,36 +605,21 @@ const PlrStakingV2TransactionBlock = ({
                   return (
                     <>
                       {plrOnKeyBased && (
-                        <Text
-                          size={12}
-                          marginTop={4}
-                          color={plrOnKeyBased.textColor}
-                          block
-                        >
+                        <Text size={12} marginTop={4} color={plrOnKeyBased.textColor} block>
                           • {plrOnKeyBased.amount} PLR on {chain.title} on Key Based
                         </Text>
                       )}
                       {plrOnSmartWallet && (
-                        <Text
-                          size={12}
-                          marginTop={4}
-                          color={plrOnSmartWallet.textColor}
-                          block
-                        >
+                        <Text size={12} marginTop={4} color={plrOnSmartWallet.textColor} block>
                           • {plrOnSmartWallet.amount} PLR on {chain.title} on Smart Wallet
                         </Text>
                       )}
                     </>
                   );
-                })
-              }
+                })}
             </>
           )}
-          {plrTokensSum === 0 && (
-            <Text size={14}>
-              You have 0 PLR tokens.
-            </Text>
-          )}
+          {plrTokensSum === 0 && <Text size={14}>You have 0 PLR tokens.</Text>}
         </Container>
       </ContainerWrapper>
       <AccountSwitchInput
@@ -725,6 +707,7 @@ const PlrStakingV2TransactionBlock = ({
               smallImageUrl={selectedFromNetwork.iconUrl}
               title={selectedFromAsset.symbol}
               smallImageTitle={selectedFromNetwork.title}
+              borderColor={theme?.color?.background?.textInput}
             />
           }
           inputTopRightComponent={
@@ -745,12 +728,11 @@ const PlrStakingV2TransactionBlock = ({
           hideKeyBased={smartWalletOnly}
         />
       </WalletReceiveWrapper>
-      {!isStakingAssetSelected
-        && !!selectedToAsset
-        && !!selectedFromAsset
-        && !!amount
-        && (remainingSelectedFromAssetBalance ?? 0) >= 0
-        && (
+      {!isStakingAssetSelected &&
+        !!selectedToAsset &&
+        !!selectedFromAsset &&
+        !!amount &&
+        (remainingSelectedFromAssetBalance ?? 0) >= 0 && (
           <>
             {selectedFromNetwork?.chainId !== selectedToNetwork?.chainId && (
               <SelectInput
@@ -784,14 +766,14 @@ const PlrStakingV2TransactionBlock = ({
                 }}
                 renderOptionListItemContent={renderOfferOption}
                 renderSelectedOptionContent={renderOfferOption}
-                placeholder='Select offer'
+                placeholder="Select offer"
                 errorMessage={errorMessages?.offer}
                 noOpen={!!selectedOffer && availableOffersOptions?.length === 1}
                 forceShow={!!availableOffersOptions?.length && availableOffersOptions?.length > 1}
               />
             )}
           </>
-      )}
+        )}
     </>
   );
 };

@@ -53,6 +53,7 @@ const mapRouteToOption = (route: Route) => {
     title: firstStep?.toolDetails?.name ?? serviceDetails?.title ?? 'LiFi',
     value: route.id,
     iconUrl: firstStep?.toolDetails?.logoURI ?? serviceDetails?.iconUrl,
+    extension: route.gasCostUSD,
   };
 };
 
@@ -169,6 +170,19 @@ const AssetBridgeTransactionBlock = ({
     accountAddress,
   ]);
 
+  const getBestRouteItem = (routes: Route[]) => {
+    let bestRoute = routes[0];
+    let minAmount = routes[0].gasCostUSD ? +routes[0].fromAmountUSD - +routes[0].gasCostUSD : Number.MAX_SAFE_INTEGER;
+
+    routes.forEach((route) => {
+      const { gasCostUSD, fromAmountUSD } = route;
+      if (!gasCostUSD) return;
+      if (+fromAmountUSD - +gasCostUSD > minAmount) bestRoute = route;
+    });
+
+    return bestRoute;
+  };
+
   const updateAvailableRoutes = useCallback(
     debounce(async () => {
       setSelectedRoute(null);
@@ -202,7 +216,10 @@ const AssetBridgeTransactionBlock = ({
           toAddress: receiverAddress ?? undefined,
         });
         setAvailableRoutes(routes);
-        if (routes.length === 1) setSelectedRoute(mapRouteToOption(routes[0]));
+
+        const bestRoute = getBestRouteItem(routes);
+
+        setSelectedRoute(mapRouteToOption(bestRoute));
       } catch (e) {
         //
       }
@@ -273,6 +290,7 @@ const AssetBridgeTransactionBlock = ({
     <RouteOption
       route={availableRoutes?.find((route) => route.id === option.value)}
       isChecked={selectedRoute?.value && selectedRoute?.value === option.value}
+      cost={option.extension && `${formatAmountDisplay(option.extension, '$', 2)}`}
     />
   );
 
@@ -354,6 +372,7 @@ const AssetBridgeTransactionBlock = ({
               smallImageUrl={selectedFromNetwork.iconUrl}
               title={selectedFromAsset.symbol}
               smallImageTitle={selectedFromNetwork.title}
+              borderColor={theme?.color?.background?.textInput}
             />
           }
           inputTopRightComponent={
@@ -404,7 +423,8 @@ const AssetBridgeTransactionBlock = ({
           errorMessage={errorMessages?.route}
           disabled={!availableRoutesOptions?.length || isLoadingAvailableRoutes}
           noOpen={!!selectedRoute && availableRoutesOptions?.length === 1}
-          forceShow={!!availableRoutesOptions?.length && availableRoutesOptions?.length > 1}
+          forceShow={!!availableRoutesOptions?.length && availableRoutesOptions?.length > 1 && !selectedRoute}
+          isOffer
         />
       )}
     </>

@@ -8,6 +8,7 @@ import { Text } from '../../Text';
 import RoundedImage from '../../Image/RoundedImage';
 import { WalletCopyIcon, WalletDropdownDownIcon, WalletDropdownUpIcon } from '../Icons';
 import { formatAmountDisplay, sumAssetsBalanceWorth } from '../../../utils/common';
+import { Theme } from '../../../utils/theme';
 
 export interface IChainAssets {
   title: string;
@@ -38,6 +39,8 @@ const WalletAssetsList = ({
   onCopy,
   toggleChainBlock,
 }: IWalletAssetsList) => {
+  const theme: Theme = useTheme();
+
   return (
     <>
       {tab === 'tokens' &&
@@ -60,11 +63,11 @@ const WalletAssetsList = ({
 
                   <ChainBlockHeaderText>{`${chain.title}・$${formatAmountDisplay(chainTotal)}`}</ChainBlockHeaderText>
 
-                  <ChainHeaderCopyIcon onClick={() => onCopy(accountAddress || '')}>
+                  <ChainHeaderCopyIcon color={theme?.color?.background?.walletAssetCopyIcon} onClick={() => onCopy(accountAddress || '')}>
                     {WalletCopyIcon}
                   </ChainHeaderCopyIcon>
 
-                  <ChainBlockDropdownIcon onClick={() => toggleChainBlock(chainId)}>
+                  <ChainBlockDropdownIcon color={theme.color?.text?.walletDropdownIcon} onClick={() => toggleChainBlock(chainId)}>
                     {hideChainList.includes(chainId) ? WalletDropdownDownIcon : WalletDropdownUpIcon}
                   </ChainBlockDropdownIcon>
                 </ChainBlockHeader>
@@ -150,8 +153,8 @@ export default WalletAssetsList;
 const ChainBlock = styled.div`
   flex: 1;
   border-radius: 8px;
-  background-color: ${({ theme }) => theme.color.background.selectInput};
-  padding: 0 0 10px;
+  background-color: ${({ theme }) => theme.color.background.walletChainDropdown};
+  padding: 12px 12px 12px 0px;
   margin-bottom: 12px;
 `;
 
@@ -182,6 +185,10 @@ const ChainBlockDropdownIcon = styled.div`
   &:hover {
     opacity: 0.5;
   }
+
+  svg g path:nth-child(2) {
+    stroke: ${({ theme }) => theme.color.text.walletDropdownIcon};
+  }
 `;
 
 const ChainHeaderCopyIcon = styled.span`
@@ -190,21 +197,54 @@ const ChainHeaderCopyIcon = styled.span`
   &:hover {
     opacity: 0.5;
   }
+
+  div svg g g {
+    stroke: ${({ theme, color }) => color ?? theme.color.text.main};
+  }
 `;
 
 // Chain Assets
 const ChainBlockList = styled.div`
-  padding: 1px 12px;
+  padding: 1px 6px;
   max-height: 320px;
-  overflow-y: scroll;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  row-gap: 2px;
+
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: none;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: ${({ theme }) => theme.color.background.scrollbar};
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    opacity: 0.7;
+  }
+
+  ::-webkit-scrollbar-thumb:active {
+    opacity: 0.7;
+  }
 `;
 
 const ListItem = styled.div`
-  margin-top: 12px;
   display: flex;
   flex: 1;
   flex-direction: row;
   align-items: center;
+  border-radius: 8px;
+  padding: 5px 8px;
+
+  &:hover {
+    ${({ theme }) => `background-color: ${theme.color.background.selectInputExpandedHover};`}
+  }
 `;
 
 const ListItemDetails = styled.div`
