@@ -396,7 +396,6 @@ export const klimaDaoStaking = async (
   }
 };
 
-
 export const buildCrossChainAction = async (
   sdk: EtherspotSdk,
   transactionBlock: ITransactionBlock
@@ -717,7 +716,7 @@ export const buildCrossChainAction = async (
         };
 
         const result = await buildBridgeAssetToPlrTransactions(fromChainId, route, sdk);
-        
+
         if (result?.errorMessage) return { errorMessage: result.errorMessage };
         const crossChainAction: ICrossChainAction = {
           id: crossChainActionId,
@@ -1158,12 +1157,7 @@ export const buildCrossChainAction = async (
           decimals: fromAssetDecimals,
           logoURI: fromAssetIconUrl,
         },
-        toAsset: {
-          address: toAssetAddress,
-          symbol: toAssetSymbol,
-          decimals: toAssetDecimals,
-          logoURI: toAssetIconUrl,
-        },
+        toAsset: { address: toAssetAddress, symbol: toAssetSymbol, decimals: toAssetDecimals, logoURI: toAssetIconUrl },
         swap,
         receiverAddress,
         accountType,
@@ -1776,7 +1770,7 @@ export const updateCrossChainActionTransactionsStatus = (
   ...crossChainAction,
   transactions: crossChainAction.transactions.map((transaction) => ({
     ...transaction,
-    status,
+    status: transaction.status === CROSS_CHAIN_ACTION_STATUS.CONFIRMED ? CROSS_CHAIN_ACTION_STATUS.CONFIRMED : status,
   })),
 });
 

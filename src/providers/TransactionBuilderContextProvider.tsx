@@ -58,6 +58,7 @@ import SettingMenu from '../components/SettingMenu/SettingMenu';
 import { TbCopy, TbWallet } from 'react-icons/tb';
 import { BiCheck } from 'react-icons/bi';
 import { CgSandClock } from 'react-icons/cg';
+import { isEmpty } from 'lodash';
 
 export interface TransactionBuilderContextProps {
   defaultTransactionBlocks?: IDefaultTransactionBlock[];
@@ -170,6 +171,10 @@ const TransactionBlocksWrapper = styled.div.attrs((props: { highlight: boolean }
     !!highlight &&
     `margin: -10px; padding: 10px; border-radius: 18px; background-color: ${theme.color.background.secondary};`};
   margin-bottom: 20px;
+
+  background: ${({ theme }) => theme.color.background.cardBorder};
+  padding: 1px;
+  border-radius: 12px;
 `;
 
 const TransactionBlocksWrapperIcon = styled.div`
@@ -255,8 +260,13 @@ const availableTransactionBlocks: ITransactionBlock[] = [
   },
   {
     id: getTimeBasedUniqueId(),
-    title: 'PLR Staking',
+    title: 'Pillar DAO NFT Membership',
     type: TRANSACTION_BLOCK_TYPE.PLR_DAO_STAKE,
+  },
+  {
+    id: getTimeBasedUniqueId(),
+    title: 'PLR Staking',
+    type: TRANSACTION_BLOCK_TYPE.PLR_STAKING_V2,
   },
   {
     id: getTimeBasedUniqueId(),
@@ -354,7 +364,7 @@ const TransactionBuilderContextProvider = ({
 
   const onCopySuccess = async () => {
     setCopiedAddress(true);
-    if (!copiedAddress && !copiedAddressInterval) setCopiedAddressInterval(10000);
+    if (!copiedAddress && !copiedAddressInterval) setCopiedAddressInterval(2000);
   };
 
   const {
@@ -387,7 +397,7 @@ const TransactionBuilderContextProvider = ({
     [crossChainActions]
   );
 
-  const onValidate = useCallback(() => {
+  const getValidationErrors = () => {
     let validationErrors: IValidationErrors = {};
     transactionBlocks.forEach((transactionBlock) => {
       const transactionBlockErrors = validateTransactionBlockValues(transactionBlock);
@@ -397,9 +407,22 @@ const TransactionBuilderContextProvider = ({
         [transactionBlock.id]: transactionBlockErrors,
       };
     });
+
+    return validationErrors;
+  };
+
+  const onValidate = useCallback(() => {
+    const validationErrors = getValidationErrors();
+
     setTransactionBlockValidationErrors(validationErrors);
 
     return validationErrors;
+  }, [transactionBlocks, isChecking, sdk, connect, accountAddress, isConnecting]);
+
+  const isBlockValid = useMemo(() => {
+    const validationErrors = getValidationErrors();
+
+    return isEmpty(validationErrors);
   }, [transactionBlocks, isChecking, sdk, connect, accountAddress, isConnecting]);
 
   const onContinueClick = useCallback(async () => {
@@ -485,7 +508,6 @@ const TransactionBuilderContextProvider = ({
     }
 
     if (errorMessage) {
-      showAlertModal(errorMessage);
       return;
     }
 
@@ -803,7 +825,14 @@ const TransactionBuilderContextProvider = ({
   };
 
   const connectedStatusMessages = {
-    [CONNECTION_STATUSES.IS_CONNECTING]: <Text color={theme.color?.text?.button}>Connecting</Text>,
+    [CONNECTION_STATUSES.IS_CONNECTING]: (
+      <SignButton>
+        <StatusIconWrapper color={theme?.color?.background?.statusIconPending}>
+          <CgSandClock size={10} />
+        </StatusIconWrapper>
+        <Text color={theme.color?.text?.button}>Sign to connect</Text>
+      </SignButton>
+    ),
     [CONNECTION_STATUSES.JUST_CONNECTED]: (
       <>
         <StatusIconWrapper color={theme?.color?.background?.statusIconSuccess}>
@@ -917,6 +946,16 @@ const TransactionBuilderContextProvider = ({
 
     openMtPelerinTab(maticSdk, account, deployingAccount, setDeployingAccount, showAlertModal);
   };
+
+  useEffect(() => {
+    if (
+      transactionBlocks?.length === 0 &&
+      crossChainActionsInProcessing?.length !== 0 &&
+      crossChainActions.length !== 0
+    ) {
+      setShowWalletBlock(true);
+    }
+  }, [transactionBlocks, crossChainActionsInProcessing, crossChainActions]);
 
   return (
     <TransactionBuilderContext.Provider value={{ data: contextData }}>
@@ -1205,28 +1244,8 @@ const TransactionBuilderContextProvider = ({
                             j === multiCallBlocks.length - 1 && showMulticallOptions !== transactionBlock.id ? 0 : 20
                           }
                           onCloseButtonClick={() =>
-                            showConfirmModal('Are you sure you want to remove selected transaction?', () => {
-                              if (j == 0) {
-                                // Remove entire block if there's only one multicall
-                                setTransactionBlocks((current) => {
-                                  return current.filter((block) => block.id !== transactionBlock.id);
-                                });
-                              } else {
-                                // Remove last instance of a multicall block
-                                setTransactionBlocks((current) => {
-                                  return current
-                                    .filter((block) => block.id !== multiCallBlock.id)
-                                    .map((block) => {
-                                      if (block.id !== multiCallBlock.multiCallData?.lastCallId) {
-                                        return block;
-                                      }
-                                      if (block.multiCallData) {
-                                        block.multiCallData.fixed = false;
-                                      }
-                                      return block;
-                                    });
-                                });
-                              }
+                            setTransactionBlocks((current) => {
+                              return current.filter((block) => block.id !== transactionBlock.id);
                             })
                           }
                           // Should only have the option to delete last multicall, any change mid structure should reset the entire block
@@ -1241,10 +1260,9 @@ const TransactionBuilderContextProvider = ({
                             errorMessages={transactionBlockValidationErrors[transactionBlock.id]}
                           />
                           {j === multiCallBlocks.length - 1 &&
-                            (multiCallBlock.type == TRANSACTION_BLOCK_TYPE.ASSET_SWAP ||
-                              multiCallBlock.type == TRANSACTION_BLOCK_TYPE.SEND_ASSET) && (
+                            multiCallBlock.type == TRANSACTION_BLOCK_TYPE.ASSET_SWAP && (
                               <MultiCallButton
-                                disabled={!!disabled}
+                                disabled={!!disabled || !isBlockValid}
                                 onClick={async () => {
                                   // Add new transaction block to the multicall block list
                                   let validationErrors = await onValidate();
@@ -1257,9 +1275,6 @@ const TransactionBuilderContextProvider = ({
                                 {multiCallBlock.type === TRANSACTION_BLOCK_TYPE.ASSET_SWAP &&
                                   multiCallBlock.values?.toAsset?.symbol &&
                                   ` with ${multiCallBlock.values?.toAsset?.symbol}`}
-                                {multiCallBlock.type === TRANSACTION_BLOCK_TYPE.SEND_ASSET &&
-                                  multiCallBlock.values?.selectedAsset &&
-                                  ` with ${multiCallBlock.values?.selectedAsset?.symbol}`}
                               </MultiCallButton>
                             )}
                         </Card>
@@ -1272,10 +1287,8 @@ const TransactionBuilderContextProvider = ({
                         i === transactionBlocks.length - 1 && showMulticallOptions !== transactionBlock.id ? 0 : 20
                       }
                       onCloseButtonClick={() =>
-                        showConfirmModal('Are you sure you want to remove selected transaction?', () =>
-                          setTransactionBlocks((current) =>
-                            current.filter((addedTransactionBlock) => addedTransactionBlock.id !== transactionBlock.id)
-                          )
+                        setTransactionBlocks((current) =>
+                          current.filter((addedTransactionBlock) => addedTransactionBlock.id !== transactionBlock.id)
                         )
                       }
                       showCloseButton={!editingTransactionBlock}
@@ -1285,12 +1298,13 @@ const TransactionBuilderContextProvider = ({
                         {...transactionBlock}
                         errorMessages={transactionBlockValidationErrors[transactionBlock.id]}
                       />
-                      {(transactionBlock.type === TRANSACTION_BLOCK_TYPE.ASSET_SWAP ||
-                        transactionBlock.type === TRANSACTION_BLOCK_TYPE.SEND_ASSET) &&
+                      {transactionBlock.type === TRANSACTION_BLOCK_TYPE.ASSET_SWAP &&
                         transactionBlock.values?.accountType === DestinationWalletEnum.Contract &&
-                        !editingTransactionBlock && (
+                        !editingTransactionBlock &&
+                        isBlockValid &&
+                        !disabled && (
                           <MultiCallButton
-                            disabled={!!disabled}
+                            disabled={!!disabled || !isBlockValid}
                             onClick={async () => {
                               // Add new transaction block to the multicall block list
                               let validationErrors = await onValidate();
@@ -1303,9 +1317,6 @@ const TransactionBuilderContextProvider = ({
                             {transactionBlock.type === TRANSACTION_BLOCK_TYPE.ASSET_SWAP &&
                               transactionBlock.values?.toAsset?.symbol &&
                               ` with ${transactionBlock.values?.toAsset?.symbol}`}
-                            {transactionBlock.type === TRANSACTION_BLOCK_TYPE.SEND_ASSET &&
-                              transactionBlock.values?.selectedAsset &&
-                              ` with ${transactionBlock.values?.selectedAsset?.symbol}`}
                           </MultiCallButton>
                         )}
                     </Card>
@@ -1324,14 +1335,16 @@ const TransactionBuilderContextProvider = ({
             {!showTransactionBlockSelect && transactionBlocks.length > 0 && (
               <>
                 <br />
-                <PrimaryButton
-                  marginTop={editingTransactionBlock ? 0 : 30}
-                  onClick={onContinueClick}
-                  disabled={isChecking}
-                >
-                  {!editingTransactionBlock && (isChecking ? 'Checking...' : 'Review')}
-                  {editingTransactionBlock && (isChecking ? 'Saving...' : 'Save')}
-                </PrimaryButton>
+                {!isChecking && isBlockValid && (
+                  <PrimaryButton
+                    marginTop={editingTransactionBlock ? 0 : 30}
+                    onClick={onContinueClick}
+                    disabled={isChecking || !isBlockValid}
+                  >
+                    {!editingTransactionBlock && (isChecking ? 'Checking...' : 'Review')}
+                    {editingTransactionBlock && (isChecking ? 'Saving...' : 'Save')}
+                  </PrimaryButton>
+                )}
               </>
             )}
             {!!editingTransactionBlock && (

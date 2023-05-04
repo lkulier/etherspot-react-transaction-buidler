@@ -402,7 +402,7 @@ const WalletTransactionBlock = ({
             value={searchValue}
             onChange={({ target }) => setSearchValue(target.value)}
           />
-          {searchValue && <SearchIcon onClick={hideSearchBar}>{WalletCloseSearchIcon}</SearchIcon>}
+          {searchValue && <SearchIcon color={theme?.color?.background?.closeButton} onClick={hideSearchBar}>{WalletCloseSearchIcon}</SearchIcon>}
         </SearchWrapper>
 
         <ChainButtonRow>
@@ -602,6 +602,10 @@ const ChainDropdownSelect = styled.div`
   margin-bottom: 18px;
   padding: 4px 48px 4px 4px;
   background-color: ${({ theme }) => theme.color.background.walletChainDropdown};
+
+  @media (max-width: 420px) {
+    gap: 4px;
+  }
 `;
 
 const ChainDropdownModal = styled.div`
@@ -616,6 +620,10 @@ const ChainDropdownList = styled.div`
   display: grid;
   grid-template-columns: repeat(6, 1fr);
   gap: 5px;
+
+  @media (max-width: 420px) {
+    gap: 4px;
+  }
 `;
 
 const ChainDropdownListWrapper = styled.div`
@@ -634,8 +642,19 @@ const ChainDropdownButton = styled.div<{ selected?: boolean }>`
   height: 48px;
   width: 48px;
   border-radius: 8px;
+  cursor: pointer;
   background-color: ${({ theme, selected }) =>
     selected ? theme.color.background.walletChainButtonActive : 'transparent'};
+
+  &:hover {
+    background-color: ${({ theme }) => theme.color.background.walletChainButtonActive};
+    opacity: 0.8;
+  }
+
+  @media (max-width: 500px) {
+    width: 40px;
+    height: 40px;
+  }
 `;
 
 const ChainDropdownIcon = styled.div`
@@ -650,6 +669,12 @@ const ChainDropdownIcon = styled.div`
   width: 48px;
   height: 48px;
   border-radius: 8px;
+  cursor: pointer;
+
+  @media (max-width: 500px) {
+    width: 40px;
+    height: 40px;
+  }
 
   &:hover {
     background: ${({ theme }) => theme.color.background.walletChainButtonActive};
@@ -702,6 +727,10 @@ const SearchIcon = styled.span`
       opacity: 0.5;
     }
   `};
+
+  svg g path:nth-child(2) {
+    stroke: ${({ color }) => color};
+  }
 `;
 
 const SelectAllWrapper = styled.div`
@@ -709,5 +738,6 @@ const SelectAllWrapper = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
+  cursor: pointer;
   color: ${({ theme }) => theme.color.text.selectAllButton};
 `;

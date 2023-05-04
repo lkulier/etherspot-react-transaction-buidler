@@ -56,9 +56,11 @@ const EtherspotContextProvider = ({
   etherspotSessionStorage,
   onLogout,
   smartWalletOnly = false,
+  changeTheme,
 }: {
   children: ReactNode;
   provider: WalletProviderLike;
+  changeTheme: Function;
   chainId?: number;
   etherspotSessionStorage?: SessionStorage;
   onLogout?: () => void;
@@ -607,6 +609,7 @@ const EtherspotContextProvider = ({
       getGasAssetsForChainId,
       updateWalletBalances,
       getRatesByNativeChainId,
+      changeTheme
     }),
     [
       connect,
@@ -634,6 +637,7 @@ const EtherspotContextProvider = ({
       loadKeyBasedWalletBalancesPerChain,
       getGasAssetsForChainId,
       updateWalletBalances,
+      changeTheme
     ]
   );
 
