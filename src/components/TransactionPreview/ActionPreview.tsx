@@ -392,9 +392,10 @@ const TransactionStatus = ({
             }
         }, [transactionStatus]);
 
-        if (hasApprovalTransaction && !showAsApproval && !isTokenApproved) {
-          return null;
-        }
+        // TODO: remove or leave after getting more info what this should do
+        // if (hasApprovalTransaction && !showAsApproval && !isTokenApproved) {
+        //   return null;
+        // }
 
         return (
           <TransactionStatusAction
@@ -496,7 +497,6 @@ const ActionPreview = ({
 }: TransactionPreviewInterface) => {
   const [timer, setTimer] = useState(0);
   const { accountAddress, providerAddress } = useEtherspot();
-  console.log("addresses", accountAddress, providerAddress)
   const theme: Theme = useTheme();
 
   const { preview, chainId, type, estimated, isEstimating } = crossChainAction;
